@@ -7,9 +7,9 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.rules.jruleengine;
 
+import com.whizzosoftware.hobson.api.HobsonRuntimeException;
 import com.whizzosoftware.hobson.api.action.HobsonActionRef;
 import com.whizzosoftware.hobson.api.trigger.HobsonTrigger;
-import com.whizzosoftware.hobson.bootstrap.api.HobsonRuntimeException;
 import org.jruleengine.rule.Action;
 import org.jruleengine.rule.Assumption;
 import org.jruleengine.rule.RuleImpl;
@@ -135,6 +135,13 @@ public class JRETrigger implements HobsonTrigger {
     @Override
     public boolean isEnabled() {
         return rule.isEnabled();
+    }
+
+    @Override
+    public void execute() {
+        for (HobsonActionRef action : actions) {
+            // TODO
+        }
     }
 
     protected Map<String,Object> createConditionMap(List<Assumption> assumps) throws Exception {

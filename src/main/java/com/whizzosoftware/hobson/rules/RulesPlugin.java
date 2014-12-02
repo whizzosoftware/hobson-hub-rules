@@ -12,7 +12,7 @@ import com.whizzosoftware.hobson.api.event.HobsonEvent;
 import com.whizzosoftware.hobson.api.event.PresenceUpdateEvent;
 import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.plugin.AbstractHobsonPlugin;
-import com.whizzosoftware.hobson.bootstrap.api.plugin.PluginStatus;
+import com.whizzosoftware.hobson.api.plugin.PluginStatus;
 import com.whizzosoftware.hobson.rules.jruleengine.JRETriggerProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
