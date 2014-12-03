@@ -120,6 +120,7 @@
                         <Bundle-Activator>com.whizzosoftware.hobson.api.activator.HobsonBundleActivator</Bundle-Activator>
                         <Embed-Dependency>jruleengine;scope=compile|runtime,jsr94;scope=compile|runtime</Embed-Dependency>
                         <Provide-Capability>hobson.plugin=com.whizzosoftware.hobson.rules.RulesPlugin</Provide-Capability>
+                        <Bundle-Category>hobson-core-plugin</Bundle-Category>
                     </instructions>
                 </configuration>
             </plugin>
