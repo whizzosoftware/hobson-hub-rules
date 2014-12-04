@@ -28,12 +28,12 @@ public class MockActionManager implements ActionManager {
     }
 
     @Override
-    public Collection<HobsonAction> getAllActions() {
+    public Collection<HobsonAction> getAllActions(String userId, String hubId) {
         return null;
     }
 
     @Override
-    public HobsonAction getAction(String pluginId, String actionId) {
+    public HobsonAction getAction(String userId, String hubId, String pluginId, String actionId) {
         return null;
     }
 

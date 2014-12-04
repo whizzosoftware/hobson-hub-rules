@@ -12,4 +12,4 @@ To find out more and download ready-to-run installers, please visit the
 
 ### hobson-hub-rules
 
-The Rules plugin provides provides the ability to define event-based triggers. In other words, triggers that are fired when specific Hobson Hub events occur (e.g. a light turns on or a person arrives home).
+The Rules plugin provides provides the ability to define event-based tasks. In other words, tasks that are triggered when specific Hobson Hub events occur (e.g. a light turns on or a person arrives home).

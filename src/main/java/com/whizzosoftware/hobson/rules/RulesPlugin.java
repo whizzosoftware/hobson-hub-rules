@@ -13,21 +13,21 @@ import com.whizzosoftware.hobson.api.event.PresenceUpdateEvent;
 import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.plugin.AbstractHobsonPlugin;
 import com.whizzosoftware.hobson.api.plugin.PluginStatus;
-import com.whizzosoftware.hobson.rules.jruleengine.JRETriggerProvider;
+import com.whizzosoftware.hobson.rules.jruleengine.JRETaskProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Dictionary;
 
 /**
- * A plugin that provides event-based triggers using the JRuleEngine library.
+ * A plugin that provides event-based tasks using the JRuleEngine library.
  *
  * @author Dan Noguerol
  */
 public class RulesPlugin extends AbstractHobsonPlugin {
     private final static Logger logger = LoggerFactory.getLogger(RulesPlugin.class);
 
-    private JRETriggerProvider triggerProvider;
+    private JRETaskProvider taskProvider;
 
     public RulesPlugin(String pluginId) {
         super(pluginId);
@@ -40,9 +40,9 @@ public class RulesPlugin extends AbstractHobsonPlugin {
 
     @Override
     public void onStartup(Dictionary dictionary) {
-        triggerProvider = new JRETriggerProvider(getId());
-        triggerProvider.setRulesFile(getDataFile("rules.json"));
-        publishTriggerProvider(triggerProvider);
+        taskProvider = new JRETaskProvider(getId());
+        taskProvider.setRulesFile(getDataFile("rules.json"));
+        publishTaskProvider(taskProvider);
 
         setStatus(new PluginStatus(PluginStatus.Status.RUNNING));
         logger.info("Rules plugin has started");
@@ -74,7 +74,7 @@ public class RulesPlugin extends AbstractHobsonPlugin {
         // for now, the plugin will only process variable and presence update events
         if (event instanceof VariableUpdateNotificationEvent ||
             event instanceof PresenceUpdateEvent) {
-            triggerProvider.processEvent(event);
+            taskProvider.processEvent(event);
         }
     }
 }

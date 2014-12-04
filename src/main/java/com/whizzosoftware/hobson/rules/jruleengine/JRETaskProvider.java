@@ -13,9 +13,9 @@ import com.whizzosoftware.hobson.api.action.ActionManager;
 import com.whizzosoftware.hobson.api.event.HobsonEvent;
 import com.whizzosoftware.hobson.api.event.PresenceUpdateEvent;
 import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
-import com.whizzosoftware.hobson.api.trigger.HobsonTrigger;
-import com.whizzosoftware.hobson.api.trigger.TriggerException;
-import com.whizzosoftware.hobson.api.trigger.TriggerProvider;
+import com.whizzosoftware.hobson.api.task.HobsonTask;
+import com.whizzosoftware.hobson.api.task.TaskException;
+import com.whizzosoftware.hobson.api.task.TaskProvider;
 import com.whizzosoftware.hobson.api.util.filewatch.FileWatcherListener;
 import com.whizzosoftware.hobson.api.util.filewatch.FileWatcherThread;
 import com.whizzosoftware.hobson.api.variable.VariableUpdate;
@@ -34,11 +34,11 @@ import java.io.*;
 import java.util.*;
 
 /**
- * A JRuleEngine implementation of TriggerProvider.
+ * A JRuleEngine implementation of TaskProvider.
  *
  * @author Dan Noguerol
  */
-public class JRETriggerProvider implements TriggerProvider, FileWatcherListener {
+public class JRETaskProvider implements TaskProvider, FileWatcherListener {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private volatile ActionManager actionManager;
@@ -50,14 +50,14 @@ public class JRETriggerProvider implements TriggerProvider, FileWatcherListener 
     private RuleAdministrator administrator;
     private RuleRuntime runtime;
     private FileWatcherThread watcherThread;
-    private final Map<String,HobsonTrigger> triggers = new HashMap<>();
+    private final Map<String,HobsonTask> tasks = new HashMap<>();
 
     /**
      * Constructor.
      *
-     * @param pluginId the plugin ID that is creating the trigger
+     * @param pluginId the plugin ID that is creating the task
      */
-    public JRETriggerProvider(String pluginId) {
+    public JRETaskProvider(String pluginId) {
         try {
             Class.forName("org.jruleengine.RuleServiceProviderImpl");
             this.pluginId = pluginId;
@@ -66,7 +66,7 @@ public class JRETriggerProvider implements TriggerProvider, FileWatcherListener 
             logger.debug("Acquired RuleAdministrator: {}", administrator);
             runtime = provider.getRuleRuntime();
         } catch (Exception e) {
-            throw new HobsonRuntimeException("Error create rule trigger provider", e);
+            throw new HobsonRuntimeException("Error create rule task provider", e);
         }
     }
 
@@ -123,11 +123,11 @@ public class JRETriggerProvider implements TriggerProvider, FileWatcherListener 
         ruleUri = res.getName();
 
         // build rule descriptors
-        triggers.clear();
+        tasks.clear();
         for (Object o : res.getRules()) {
             if (o instanceof Rule) {
-                JRETrigger trigger = new JRETrigger(pluginId, (RuleImpl)o);
-                triggers.put(trigger.getId(), trigger);
+                JRETask task = new JRETask(pluginId, (RuleImpl)o);
+                tasks.put(task.getId(), task);
             } else {
                 logger.error("Found rule that didn't conform to interface: {}", o);
             }
@@ -183,6 +183,7 @@ public class JRETriggerProvider implements TriggerProvider, FileWatcherListener 
     public void onFileChanged(File rulesFile) {
         try {
             if (rulesFile.getAbsolutePath().equals(this.rulesFile.getAbsolutePath())) {
+                logger.trace("Detected file change; reloading rules file");
                 loadRules(new FileInputStream(rulesFile));
             } else {
                 setRulesFile(rulesFile);
@@ -193,58 +194,63 @@ public class JRETriggerProvider implements TriggerProvider, FileWatcherListener 
     }
 
     @Override
-    public Collection<HobsonTrigger> getTriggers() {
-        return triggers.values();
+    public Collection<HobsonTask> getTasks() {
+        logger.trace("Retrieving task list: {}" + tasks);
+        return tasks.values();
     }
 
     @Override
-    public HobsonTrigger getTrigger(String triggerId) {
-        return triggers.get(triggerId);
+    public HobsonTask getTask(String taskId) {
+        return tasks.get(taskId);
     }
 
     @Override
-    synchronized public void addTrigger(Object trigger) {
+    synchronized public void addTask(Object task) {
         try {
-            JRETrigger jret = new JRETrigger(pluginId, (JSONObject)trigger);
-            triggers.put(jret.getId(), jret);
+            logger.trace("Adding new task: {}", task);
+            JRETask jret = new JRETask(pluginId, (JSONObject)task);
+            tasks.put(jret.getId(), jret);
             writeRuleFile();
         } catch (Exception e) {
-            throw new TriggerException("Error adding trigger", e);
+            throw new TaskException("Error adding task", e);
         }
     }
 
     @Override
-    synchronized public void updateTrigger(String triggerId, String name, Object data) {
+    synchronized public void updateTask(String taskId, String name, Object data) {
         try {
-            JRETrigger trigger = (JRETrigger)triggers.get(triggerId);
-            if (trigger != null) {
-                triggers.remove(triggerId);
-                triggers.put(triggerId, new JRETrigger(trigger.getProviderId(), new JSONObject(new JSONTokener((String)data))));
+            JRETask task = (JRETask) tasks.get(taskId);
+            if (task != null) {
+                tasks.remove(taskId);
+                tasks.put(taskId, new JRETask(task.getProviderId(), new JSONObject(new JSONTokener((String) data))));
                 writeRuleFile();
             } else {
-                throw new RuntimeException("Trigger not found");
+                throw new RuntimeException("Task not found");
             }
         } catch (Exception e) {
-            throw new TriggerException("Error adding trigger", e);
+            throw new TaskException("Error adding task", e);
         }
     }
 
     @Override
-    synchronized public void deleteTrigger(String triggerId) {
+    synchronized public void deleteTask(String taskId) {
         try {
-            JRETrigger trigger = (JRETrigger)triggers.get(triggerId);
-            if (trigger != null) {
-                triggers.remove(triggerId);
+            JRETask task = (JRETask) tasks.get(taskId);
+            if (task != null) {
+                logger.trace("Removing task: {}", taskId);
+                tasks.remove(taskId);
                 writeRuleFile();
             } else {
-                throw new RuntimeException("Trigger not found");
+                throw new RuntimeException("Task not found");
             }
         } catch (Exception e) {
-            throw new TriggerException("Error deleting trigger", e);
+            throw new TaskException("Error deleting task", e);
         }
     }
 
     synchronized private void writeRuleFile() throws Exception {
+        logger.trace("Writing rules file");
+
         FileWriter writer = new FileWriter(rulesFile);
         JSONObject rootJson = new JSONObject();
         rootJson.put("name", "Hobson Rules");
@@ -263,24 +269,24 @@ public class JRETriggerProvider implements TriggerProvider, FileWatcherListener 
 
         rootJson.put("synonyms", synArray);
 
-        if (triggers.size() > 0) {
+        if (tasks.size() > 0) {
             JSONArray rulesArray = new JSONArray();
-            for (HobsonTrigger trigger : triggers.values()) {
+            for (HobsonTask task : tasks.values()) {
                 JSONObject rule = new JSONObject();
-                rule.put("name", trigger.getId());
-                rule.put("description", trigger.getName());
+                rule.put("name", task.getId());
+                rule.put("description", task.getName());
 
                 JSONArray assumptions = new JSONArray();
-                if (trigger.getConditions().size() > 0) {
-                    for (Map<String,Object> conditionMap : trigger.getConditions()) {
+                if (task.getConditions().size() > 0) {
+                    for (Map<String,Object> conditionMap : task.getConditions()) {
                         createAssumptionJson(conditionMap, assumptions);
                     }
                 }
                 rule.put("assumptions", assumptions);
 
                 JSONArray actions = new JSONArray();
-                if (trigger.getActions().size() > 0) {
-                    for (HobsonActionRef ref : trigger.getActions()) {
+                if (task.getActions().size() > 0) {
+                    for (HobsonActionRef ref : task.getActions()) {
                         JSONObject action = new JSONObject();
                         action.put("method", "actions.executeAction");
                         action.put("arg1", ref.getPluginId());

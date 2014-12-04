@@ -9,7 +9,8 @@ package com.whizzosoftware.hobson.rules.jruleengine;
 
 import com.whizzosoftware.hobson.api.HobsonRuntimeException;
 import com.whizzosoftware.hobson.api.action.HobsonActionRef;
-import com.whizzosoftware.hobson.api.trigger.HobsonTrigger;
+import com.whizzosoftware.hobson.api.task.HobsonTask;
+import com.whizzosoftware.hobson.api.util.VariableChangeIdHelper;
 import org.jruleengine.rule.Action;
 import org.jruleengine.rule.Assumption;
 import org.jruleengine.rule.RuleImpl;
@@ -20,11 +21,11 @@ import org.json.JSONTokener;
 import java.util.*;
 
 /**
- * A HobsonTrigger implementation that uses JRuleEngine.
+ * A HobsonTask implementation that uses JRuleEngine.
  *
  * @author Dan Noguerol
  */
-public class JRETrigger implements HobsonTrigger {
+public class JRETask implements HobsonTask {
     private String providerId;
     /**
      * The actual JRuleEngine rule that will be evaluated
@@ -40,7 +41,7 @@ public class JRETrigger implements HobsonTrigger {
     private final List<HobsonActionRef> actions = new ArrayList<>();
     private final Properties properties = new Properties();
 
-    public JRETrigger(String providerId, RuleImpl rule) throws Exception {
+    public JRETask(String providerId, RuleImpl rule) throws Exception {
         this.providerId = providerId;
         this.rule = rule;
 
@@ -59,10 +60,10 @@ public class JRETrigger implements HobsonTrigger {
     /**
      * Constructor.
      *
-     * @param providerId the trigger provider ID
-     * @param json the JSON trigger definition
+     * @param providerId the task provider ID
+     * @param json the JSON task definition
      */
-    public JRETrigger(String providerId, JSONObject json) {
+    public JRETask(String providerId, JSONObject json) {
         this.providerId = providerId;
 
         try {
@@ -83,7 +84,7 @@ public class JRETrigger implements HobsonTrigger {
 
             rule = new RuleImpl(UUID.randomUUID().toString(), json.getString("name"), assumptions, actionList, true);
         } catch (Exception e) {
-            throw new HobsonRuntimeException("Error creating rule trigger", e);
+            throw new HobsonRuntimeException("Error creating rule task", e);
         }
     }
 
@@ -193,14 +194,28 @@ public class JRETrigger implements HobsonTrigger {
                 assList.add(new Assumption("event.deviceId", "=", s));
                 conditionMap.put("deviceId", s);
 
-                s = condition.getString("name");
-                assList.add(new Assumption("event.variableName", "=", s));
-                conditionMap.put("name", s);
+                // handle variable value comparison
+                if (condition.has("variable")) {
+                    JSONObject cvar = condition.getJSONObject("variable");
 
-                s = condition.getString("comparator");
-                assList.add(new Assumption("event.variableValue", s, condition.get("value").toString()));
-                conditionMap.put("comparator", s);
-                conditionMap.put("value", condition.get("value"));
+                    s = cvar.getString("name");
+                    assList.add(new Assumption("event.variableName", "=", s));
+                    conditionMap.put("name", s);
+
+                    s = cvar.getString("comparator");
+                    assList.add(new Assumption("event.variableValue", s, cvar.get("value").toString()));
+                    conditionMap.put("comparator", s);
+                    conditionMap.put("value", cvar.get("value"));
+
+                // handle change IDs
+                } else if (condition.has("changeId")) {
+                    Map<String,Object> var = VariableChangeIdHelper.getVariableForChangeId(condition.getString("changeId"));
+                    String name = (String)var.keySet().toArray()[0];
+                    Object value = var.get(name);
+                    conditionMap.put("name", name);
+                    conditionMap.put("value", value);
+                    conditionMap.put("comparator", "=");
+                }
 
                 return conditionMap;
             } else if ("presenceUpdate".equals(eventType)) {

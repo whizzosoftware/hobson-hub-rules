@@ -9,7 +9,7 @@ package com.whizzosoftware.hobson.rules.jruleengine;
 
 import com.whizzosoftware.hobson.api.action.HobsonActionRef;
 import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
-import com.whizzosoftware.hobson.api.trigger.HobsonTrigger;
+import com.whizzosoftware.hobson.api.task.HobsonTask;
 import com.whizzosoftware.hobson.api.variable.VariableConstants;
 import com.whizzosoftware.hobson.api.variable.VariableUpdate;
 import com.whizzosoftware.hobson.rules.MockActionManager;
@@ -27,10 +27,10 @@ import java.io.File;
 import java.io.FileReader;
 import java.util.Collection;
 
-public class JRETriggerProviderTest {
+public class JRETaskProviderTest {
     @Test
     public void testEmptyRuleConstruction() throws Exception {
-        JRETriggerProvider provider = new JRETriggerProvider("pluginId");
+        JRETaskProvider provider = new JRETaskProvider("pluginId");
 
         // validate we start with a non-existent temp file
         File ruleFile = File.createTempFile("rules", ".json");
@@ -56,7 +56,7 @@ public class JRETriggerProviderTest {
 
     @Test
     public void testJSONRuleConstruction() throws Exception {
-        JRETriggerProvider provider = new JRETriggerProvider("pluginId");
+        JRETaskProvider provider = new JRETaskProvider("pluginId");
 
         // validate we start with a non-existent temp file
         File ruleFile = File.createTempFile("rules", ".json");
@@ -65,8 +65,8 @@ public class JRETriggerProviderTest {
 
         try {
             provider.setRulesFile(ruleFile);
-            JSONObject json = new JSONObject(new JSONTokener("{'name':'My Trigger','conditions':[{'event':'variableUpdate','pluginId':'com.whizzosoftware.hobson.hobson-hub-zwave','deviceId':'zwave-32','name':'on','comparator':'=','value':false}],'actions':[{'pluginId':'com.whizzosoftware.hobson.server-api','actionId':'log','name':'My Action','properties':{'message':'log'}}]}"));
-            provider.addTrigger(json);
+            JSONObject json = new JSONObject(new JSONTokener("{'name':'My Task','conditions':[{'event':'variableUpdate','pluginId':'com.whizzosoftware.hobson.hobson-hub-zwave','deviceId':'zwave-32','variable':{'name':'on','comparator':'=','value':false}}],'actions':[{'pluginId':'com.whizzosoftware.hobson.server-api','actionId':'log','name':'My Action','properties':{'message':'log'}}]}"));
+            provider.addTask(json);
 
             // make sure the provider updated the rule file
             assertTrue(ruleFile.exists());
@@ -82,7 +82,7 @@ public class JRETriggerProviderTest {
             assertEquals(1, rules.length());
             JSONObject rule = rules.getJSONObject(0);
             assertNotNull(rule.get("name"));
-            assertEquals("My Trigger", rule.get("description"));
+            assertEquals("My Task", rule.get("description"));
             assertNotNull(rule.get("actions"));
 
             assertTrue(rule.has("assumptions"));
@@ -125,7 +125,7 @@ public class JRETriggerProviderTest {
     @Test
     public void testRuleExecution() throws Exception {
         MockActionManager actionContext = new MockActionManager();
-        JRETriggerProvider engine = new JRETriggerProvider("pluginId");
+        JRETaskProvider engine = new JRETaskProvider("pluginId");
         engine.setActionManager(actionContext);
         String rulesJson = "{\n" +
                 "\t\"name\": \"Hobson Rules\",\n" +
@@ -185,13 +185,13 @@ public class JRETriggerProviderTest {
                 "}";
         engine.loadRules(new ByteArrayInputStream(rulesJson.getBytes()));
 
-        Collection<HobsonTrigger> triggers = engine.getTriggers();
-        Assert.assertEquals(1, triggers.size());
-        HobsonTrigger trigger = triggers.iterator().next();
-        Assert.assertNotNull("ruleid1", trigger.getId());
-        Assert.assertEquals("test rule", trigger.getName());
-        Assert.assertEquals(1, trigger.getActions().size());
-        HobsonActionRef ref = trigger.getActions().iterator().next();
+        Collection<HobsonTask> tasks = engine.getTasks();
+        Assert.assertEquals(1, tasks.size());
+        HobsonTask task = tasks.iterator().next();
+        Assert.assertNotNull("ruleid1", task.getId());
+        Assert.assertEquals("test rule", task.getName());
+        Assert.assertEquals(1, task.getActions().size());
+        HobsonActionRef ref = task.getActions().iterator().next();
         Assert.assertEquals("com.whizzosoftware.hobson.server-api", ref.getPluginId());
         Assert.assertEquals("setVariable", ref.getActionId());
 
