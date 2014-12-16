@@ -45,7 +45,7 @@ public class RulesPlugin extends AbstractHobsonPlugin {
         publishTaskProvider(taskProvider);
 
         setStatus(new PluginStatus(PluginStatus.Status.RUNNING));
-        logger.info("Rules plugin has started");
+        logger.debug("Rules plugin has started");
     }
 
     @Override

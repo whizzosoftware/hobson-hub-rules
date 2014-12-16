@@ -100,7 +100,7 @@ public class JRETaskProvider implements TaskProvider, FileWatcherListener {
                 }
 
                 // load the rules
-                logger.info("Rules engine loading file: {}", rulesFile.getAbsolutePath());
+                logger.debug("Rules engine loading file: {}", rulesFile.getAbsolutePath());
                 loadRules(new FileInputStream(rulesFile));
 
                 // start watching the rules file for changes
