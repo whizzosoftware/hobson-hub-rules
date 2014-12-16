@@ -5,7 +5,7 @@
     <artifactId>hobson-hub-rules</artifactId>
     <version>0.1.2-SNAPSHOT</version>
     <packaging>bundle</packaging>
-    <name>Rules Plugin</name>
+    <name>Hobson Rules Plugin</name>
     <description>Provides the ability to create event-based tasks.</description>
     <dependencies>
         <dependency>
