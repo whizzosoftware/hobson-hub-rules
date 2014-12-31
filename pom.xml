@@ -150,8 +150,8 @@
         </repository>
     </repositories>
     <scm>
-        <connection>scm:git:ssh://git@bitbucket.org/whizzosoftware/hobson-hub-rules.git</connection>
-        <developerConnection>scm:git:ssh://git@bitbucket.org/whizzosoftware/hobson-hub-rules.git</developerConnection>
+        <connection>scm:git:ssh://git@github.com/whizzosoftware/hobson-hub-rules.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/whizzosoftware/hobson-hub-rules.git</developerConnection>
       	<tag>HEAD</tag>
     </scm>
     <distributionManagement>
