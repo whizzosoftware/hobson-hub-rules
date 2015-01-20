@@ -217,7 +217,7 @@ public class JRETaskProvider implements TaskProvider, FileWatcherListener {
     }
 
     @Override
-    synchronized public void updateTask(String taskId, String name, Object data) {
+    synchronized public void updateTask(String taskId, Object data) {
         try {
             JRETask task = (JRETask) tasks.get(taskId);
             if (task != null) {
