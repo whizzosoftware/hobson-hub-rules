@@ -39,13 +39,16 @@ public class JRETask implements HobsonTask {
      * The list of actions that the rule will execute
      */
     private final List<HobsonActionRef> actions = new ArrayList<>();
+    /**
+     * Free-form properties about the task
+     */
     private final Properties properties = new Properties();
 
     public JRETask(String providerId, RuleImpl rule) throws Exception {
         this.providerId = providerId;
         this.rule = rule;
 
-        Map<String,Object> map = createConditionMap(rule.getAssumptions());
+        Map<String,Object> map = populateChangeId(createConditionMap(rule.getAssumptions()));
         if (map != null && map.size() > 0) {
             conditions.add(map);
         }
@@ -149,15 +152,15 @@ public class JRETask implements HobsonTask {
         Map<String,Object> map = new HashMap<>();
 
         for (Assumption a : assumps) {
-            if (a.getLeftTerm().equals("event.eventId")) {
+            if (a.getLeftTerm().equals("event.eventId") || a.getLeftTerm().equals("com.whizzosoftware.hobson.rules.jruleengine.JREEventContext.eventId")) {
                 map.put("event", a.getRightTerm());
-            } else if (a.getLeftTerm().equals("event.pluginId")) {
+            } else if (a.getLeftTerm().equals("event.pluginId") || a.getLeftTerm().equals("com.whizzosoftware.hobson.rules.jruleengine.JREEventContext.pluginId")) {
                 map.put("pluginId", a.getRightTerm());
-            } else if (a.getLeftTerm().equals("event.deviceId")) {
+            } else if (a.getLeftTerm().equals("event.deviceId") || a.getLeftTerm().equals("com.whizzosoftware.hobson.rules.jruleengine.JREEventContext.deviceId")) {
                 map.put("deviceId", a.getRightTerm());
-            } else if (a.getLeftTerm().equals("event.variableName")) {
+            } else if (a.getLeftTerm().equals("event.variableName") || a.getLeftTerm().equals("com.whizzosoftware.hobson.rules.jruleengine.JREEventContext.variableName")) {
                 map.put("name", a.getRightTerm());
-            } else if (a.getLeftTerm().equals("event.variableValue")) {
+            } else if (a.getLeftTerm().equals("event.variableValue") || a.getLeftTerm().equals("com.whizzosoftware.hobson.rules.jruleengine.JREEventContext.variableValue")) {
                 map.put("value", createValue(a.getRightTerm()));
                 map.put("comparator", a.getOperator());
             } else if (a.getLeftTerm().equals("event.entityId")) {
@@ -170,28 +173,60 @@ public class JRETask implements HobsonTask {
         return map;
     }
 
-    protected void createAssumptions(JSONArray conditions, List<Assumption> assList) throws Exception {
+    protected Map<String,Object> populateChangeId(Map<String, Object> map) {
+        if ("variableUpdate".equals(map.get("event"))) {
+            if (map.get("value") != null && map.get("comparator") != null) {
+                if ("on".equals(map.get("name"))) {
+                    if (map.get("value").equals(true) && map.get("comparator").equals("=")) {
+                        map.put("changeId", "turnOn");
+                    } else if (map.get("value").equals(false) && map.get("comparator").equals("=")) {
+                        map.put("changeId", "turnOff");
+                    }
+                }
+            }
+        }
+
+        return map;
+    }
+
+    /**
+     * Create an assumption list.
+     *
+     * @param conditions the JSON representation of the conditions
+     * @param assumpList a List of Assumption objects to populate with the generated assumptions
+     *
+     * @throws Exception on failure
+     */
+    protected void createAssumptions(JSONArray conditions, List<Assumption> assumpList) throws Exception {
         for (int i=0; i < conditions.length(); i++) {
             JSONObject condition = conditions.getJSONObject(i);
-            this.conditions.add(createAssumption(condition, assList));
+            this.conditions.add(populateChangeId(createAssumption(condition, assumpList)));
         }
     }
 
-    protected Map<String,Object> createAssumption(JSONObject condition, List<Assumption> assList) {
+    /**
+     * Create an assumption.
+     *
+     * @param condition the JSON representation of the condition
+     * @param assumpList the List of Assumption objects to populate with the generated assumptions
+     *
+     * @return a Map representation of the condition
+     */
+    protected Map<String,Object> createAssumption(JSONObject condition, List<Assumption> assumpList) {
         if (condition.has("event")) {
             String eventType = condition.getString("event");
             if ("variableUpdate".equals(eventType)) {
                 Map<String, Object> conditionMap = new HashMap<>();
 
-                assList.add(new Assumption("event.eventId", "=", eventType));
+                assumpList.add(new Assumption("event.eventId", "=", eventType));
                 conditionMap.put("event", eventType);
 
                 String s = condition.getString("pluginId");
-                assList.add(new Assumption("event.pluginId", "=", s));
+                assumpList.add(new Assumption("event.pluginId", "=", s));
                 conditionMap.put("pluginId", s);
 
                 s = condition.getString("deviceId");
-                assList.add(new Assumption("event.deviceId", "=", s));
+                assumpList.add(new Assumption("event.deviceId", "=", s));
                 conditionMap.put("deviceId", s);
 
                 // handle variable value comparison
@@ -199,14 +234,13 @@ public class JRETask implements HobsonTask {
                     JSONObject cvar = condition.getJSONObject("variable");
 
                     s = cvar.getString("name");
-                    assList.add(new Assumption("event.variableName", "=", s));
+                    assumpList.add(new Assumption("event.variableName", "=", s));
                     conditionMap.put("name", s);
 
                     s = cvar.getString("comparator");
-                    assList.add(new Assumption("event.variableValue", s, cvar.get("value").toString()));
+                    assumpList.add(new Assumption("event.variableValue", s, cvar.get("value").toString()));
                     conditionMap.put("comparator", s);
                     conditionMap.put("value", cvar.get("value"));
-
                 // handle change IDs
                 } else if (condition.has("changeId")) {
                     Map<String,Object> var = VariableChangeIdHelper.getVariableForChangeId(condition.getString("changeId"));
@@ -220,15 +254,15 @@ public class JRETask implements HobsonTask {
                 return conditionMap;
             } else if ("presenceUpdate".equals(eventType)) {
                 Map<String,Object> conditionMap = new HashMap<>();
-                assList.add(new Assumption("event.eventId", "=", eventType));
+                assumpList.add(new Assumption("event.eventId", "=", eventType));
                 conditionMap.put("event", eventType);
 
                 String s = condition.getString("entityId");
-                assList.add(new Assumption("event.entityId", "=", s));
+                assumpList.add(new Assumption("event.entityId", "=", s));
                 conditionMap.put("entityId", s);
 
                 s = condition.getString("location");
-                assList.add(new Assumption("event.location", "=", s));
+                assumpList.add(new Assumption("event.location", "=", s));
                 conditionMap.put("location", s);
 
                 return conditionMap;

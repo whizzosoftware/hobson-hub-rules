@@ -217,12 +217,12 @@ public class JRETaskProvider implements TaskProvider, FileWatcherListener {
     }
 
     @Override
-    synchronized public void updateTask(String taskId, Object data) {
+    synchronized public void updateTask(String taskId, Object task) {
         try {
-            JRETask task = (JRETask) tasks.get(taskId);
-            if (task != null) {
+            JRETask jret = (JRETask)tasks.get(taskId);
+            if (jret != null) {
                 tasks.remove(taskId);
-                tasks.put(taskId, new JRETask(task.getProviderId(), new JSONObject(new JSONTokener((String) data))));
+                tasks.put(taskId, new JRETask(jret.getProviderId(), (JSONObject)task));
                 writeRuleFile();
             } else {
                 throw new RuntimeException("Task not found");
