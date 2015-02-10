@@ -7,6 +7,7 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.rules;
 
+import com.whizzosoftware.hobson.api.config.Configuration;
 import com.whizzosoftware.hobson.api.event.EventTopics;
 import com.whizzosoftware.hobson.api.event.HobsonEvent;
 import com.whizzosoftware.hobson.api.event.PresenceUpdateEvent;
@@ -39,7 +40,7 @@ public class RulesPlugin extends AbstractHobsonPlugin {
     }
 
     @Override
-    public void onStartup(Dictionary dictionary) {
+    public void onStartup(Configuration config) {
         taskProvider = new JRETaskProvider(getId());
         taskProvider.setRulesFile(getDataFile("rules.json"));
         publishTaskProvider(taskProvider);
@@ -47,9 +48,6 @@ public class RulesPlugin extends AbstractHobsonPlugin {
         setStatus(new PluginStatus(PluginStatus.Status.RUNNING));
         logger.debug("Rules plugin has started");
     }
-
-    @Override
-    public void onShutdown() {}
 
     @Override
     public long getRefreshInterval() {
@@ -65,7 +63,7 @@ public class RulesPlugin extends AbstractHobsonPlugin {
     }
 
     @Override
-    public void onPluginConfigurationUpdate(Dictionary dictionary) {}
+    public void onPluginConfigurationUpdate(Configuration config) {}
 
     @Override
     public void onHobsonEvent(HobsonEvent event) {

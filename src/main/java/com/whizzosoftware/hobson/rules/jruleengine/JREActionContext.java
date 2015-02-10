@@ -8,6 +8,7 @@
 package com.whizzosoftware.hobson.rules.jruleengine;
 
 import com.whizzosoftware.hobson.api.action.ActionManager;
+import com.whizzosoftware.hobson.api.util.UserUtil;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import org.slf4j.Logger;
@@ -41,7 +42,7 @@ public class JREActionContext {
                 String s = it.next();
                 map.put(s, json.get(s));
             }
-            actionManager.executeAction(pluginId, actionId, map);
+            actionManager.executeAction(UserUtil.DEFAULT_USER, UserUtil.DEFAULT_HUB, pluginId, actionId, map);
         } catch (Exception e) {
             logger.error("Error executing action", e);
         }

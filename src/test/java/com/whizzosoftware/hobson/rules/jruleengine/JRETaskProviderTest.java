@@ -8,11 +8,11 @@
 package com.whizzosoftware.hobson.rules.jruleengine;
 
 import com.whizzosoftware.hobson.api.action.HobsonActionRef;
+import com.whizzosoftware.hobson.api.action.MockActionManager;
 import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.task.HobsonTask;
 import com.whizzosoftware.hobson.api.variable.VariableConstants;
 import com.whizzosoftware.hobson.api.variable.VariableUpdate;
-import com.whizzosoftware.hobson.rules.MockActionManager;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
