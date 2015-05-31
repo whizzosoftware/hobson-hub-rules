@@ -7,18 +7,25 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.rules.jruleengine;
 
-import com.whizzosoftware.hobson.api.action.HobsonActionRef;
-import com.whizzosoftware.hobson.api.task.HobsonTask;
+import com.whizzosoftware.hobson.api.HobsonRuntimeException;
+import com.whizzosoftware.hobson.api.device.DeviceContext;
+import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
+import com.whizzosoftware.hobson.api.hub.HubContext;
+import com.whizzosoftware.hobson.api.plugin.PluginContext;
+import com.whizzosoftware.hobson.api.property.PropertyContainer;
+import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
+import com.whizzosoftware.hobson.api.property.PropertyContainerSet;
+import com.whizzosoftware.hobson.api.task.TaskContext;
+import com.whizzosoftware.hobson.rules.RulesPlugin;
+import com.whizzosoftware.hobson.rules.condition.*;
 import org.jruleengine.rule.Action;
 import org.jruleengine.rule.Assumption;
 import org.jruleengine.rule.RuleImpl;
-import org.json.JSONObject;
-import org.json.JSONTokener;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
-import java.util.Map;
+import java.util.Collections;
 
 public class JRETaskTest {
     @Test
@@ -26,173 +33,137 @@ public class JRETaskTest {
         ArrayList assumps = new ArrayList();
         ArrayList actions = new ArrayList();
         RuleImpl rule = new RuleImpl("rule1", "rule1desc", assumps, actions, true);
-        JRETask trig = new JRETask("providerId", rule);
-        assertNotNull("rule1", trig.getId());
-        assertEquals("rule1desc", trig.getName());
-        assertEquals(0, trig.getConditions().size());
-        assertEquals(0, trig.getActions().size());
+        try {
+            new JRETask(PluginContext.createLocal("plugin1"), rule);
+            fail("Should have thrown exception");
+        } catch (HobsonRuntimeException ignored) {
+        }
     }
 
     @Test
-    public void testSingleRuleConstructor() throws Exception {
+    public void testRuleConstructorWithTurnOffTrigger() throws Exception {
+        HubContext hctx = HubContext.createLocal();
+        PluginContext pctx = PluginContext.create(hctx, "plugin1");
+
+        // create assumptions
         ArrayList assumps = new ArrayList();
-        assumps.add(new Assumption("event.eventId", "=", "variableUpdate"));
-        assumps.add(new Assumption("event.pluginId", "=", "com.whizzosoftware.hobson.server-zwave"));
-        assumps.add(new Assumption("event.deviceId", "=", "zwave-32"));
-        assumps.add(new Assumption("event.variableName", "=", "on"));
-        assumps.add(new Assumption("event.variableValue", "=", "true"));
+        assumps.add(new Assumption(ConditionConstants.EVENT_ID, "=", VariableUpdateNotificationEvent.ID));
+        assumps.add(new Assumption(ConditionConstants.PLUGIN_ID, "=", "com.whizzosoftware.hobson.server-zwave"));
+        assumps.add(new Assumption(ConditionConstants.DEVICE_ID, "=", "zwave-32"));
+        assumps.add(new Assumption(ConditionConstants.VARIABLE_NAME, "=", "on"));
+        assumps.add(new Assumption(ConditionConstants.VARIABLE_VALUE, "=", "false"));
+
+        // create actions
         ArrayList actions = new ArrayList();
-        ArrayList params = new ArrayList();
-        params.add("val1");
-        params.add("val2");
-        params.add("val3");
-        params.add("{'foo':'bar'}");
-        actions.add(new Action("method", params));
+        actions.add(new Action(ConditionConstants.EXECUTE_ACTIONSET, Collections.singletonList("actionset1")));
+
+        // create JRE rule
         RuleImpl rule = new RuleImpl("rule1", "rule1desc", assumps, actions, true);
 
-        JRETask trig = new JRETask("providerId", rule);
+        JRETask task = new JRETask(pctx, rule);
 
-        assertNotNull("rule1", trig.getId());
-        assertEquals("rule1desc", trig.getName());
+        assertNotNull("rule1", task.getContext().getTaskId());
+        assertEquals("rule1desc", task.getName());
 
-        assertEquals(1, trig.getConditions().size());
-        Map<String,Object> map = trig.getConditions().iterator().next();
-        assertEquals("variableUpdate", map.get("event"));
-        assertEquals("com.whizzosoftware.hobson.server-zwave", map.get("pluginId"));
-        assertEquals("zwave-32", map.get("deviceId"));
-        assertEquals("on", map.get("name"));
-        assertEquals("=", map.get("comparator"));
-        assertEquals(true, map.get("value"));
-
-        assertEquals(1, trig.getActions().size());
-        HobsonActionRef ref = trig.getActions().iterator().next();
-        assertEquals("val1", ref.getPluginId());
-        assertEquals("val2", ref.getActionId());
-        assertEquals("val3", ref.getName());
-        assertEquals(1, ref.getProperties().size());
-        assertEquals("bar", ref.getProperties().get("foo"));
+        assertTrue(task.getConditionSet().hasPrimaryProperty());
+        assertEquals(RulesPlugin.CONDITION_CLASS_TURN_OFF, task.getConditionSet().getPrimaryProperty().getContainerClassContext().getContainerClassId());
+        assertNotNull(task.getConditionSet().getPrimaryProperty().getPropertyValue("device"));
+        assertEquals("com.whizzosoftware.hobson.server-zwave", ((DeviceContext) task.getConditionSet().getPrimaryProperty().getPropertyValue("device")).getPluginId());
+        assertEquals("zwave-32", ((DeviceContext) task.getConditionSet().getPrimaryProperty().getPropertyValue("device")).getDeviceId());
     }
 
     @Test
-    public void testSingleRuleConstructorWithExpandedKeys() throws Exception {
-        ArrayList assumps = new ArrayList();
-        assumps.add(new Assumption("com.whizzosoftware.hobson.rules.jruleengine.JREEventContext.eventId", "=", "variableUpdate"));
-        assumps.add(new Assumption("com.whizzosoftware.hobson.rules.jruleengine.JREEventContext.pluginId", "=", "com.whizzosoftware.hobson.server-zwave"));
-        assumps.add(new Assumption("com.whizzosoftware.hobson.rules.jruleengine.JREEventContext.deviceId", "=", "zwave-32"));
-        assumps.add(new Assumption("com.whizzosoftware.hobson.rules.jruleengine.JREEventContext.variableName", "=", "on"));
-        assumps.add(new Assumption("com.whizzosoftware.hobson.rules.jruleengine.JREEventContext.variableValue", "=", "true"));
-        ArrayList actions = new ArrayList();
-        ArrayList params = new ArrayList();
-        params.add("val1");
-        params.add("val2");
-        params.add("val3");
-        params.add("{'foo':'bar'}");
-        actions.add(new Action("method", params));
+    public void testRuleConstructorWithTurnOnTrigger() throws Exception {
+        HubContext hctx = HubContext.createLocal();
+        PluginContext pctx = PluginContext.create(hctx, "plugin1");
+
+        // create assumptions
+        ArrayList<Assumption> assumps = new ArrayList<>();
+        assumps.add(new Assumption(ConditionConstants.EVENT_ID, "=", VariableUpdateNotificationEvent.ID));
+        assumps.add(new Assumption(ConditionConstants.PLUGIN_ID, "=", "com.whizzosoftware.hobson.server-zwave"));
+        assumps.add(new Assumption(ConditionConstants.DEVICE_ID, "=", "zwave-32"));
+        assumps.add(new Assumption(ConditionConstants.VARIABLE_NAME, "=", "on"));
+        assumps.add(new Assumption(ConditionConstants.VARIABLE_VALUE, "=", "true"));
+
+        // create actions
+        ArrayList<Action> actions = new ArrayList<>();
+        actions.add(new Action(ConditionConstants.EXECUTE_ACTIONSET, Collections.singletonList("actionset1")));
+
+        // create JRE rule
         RuleImpl rule = new RuleImpl("rule1", "rule1desc", assumps, actions, true);
 
-        JRETask trig = new JRETask("providerId", rule);
+        JRETask task = new JRETask(pctx, rule);
 
-        assertNotNull("rule1", trig.getId());
-        assertEquals("rule1desc", trig.getName());
+        assertNotNull("rule1", task.getContext().getTaskId());
+        assertEquals("rule1desc", task.getName());
 
-        assertEquals(1, trig.getConditions().size());
-        Map<String,Object> map = trig.getConditions().iterator().next();
-        assertEquals("variableUpdate", map.get("event"));
-        assertEquals("com.whizzosoftware.hobson.server-zwave", map.get("pluginId"));
-        assertEquals("zwave-32", map.get("deviceId"));
-        assertEquals("on", map.get("name"));
-        assertEquals("=", map.get("comparator"));
-        assertEquals(true, map.get("value"));
-
-        assertEquals(1, trig.getActions().size());
-        HobsonActionRef ref = trig.getActions().iterator().next();
-        assertEquals("val1", ref.getPluginId());
-        assertEquals("val2", ref.getActionId());
-        assertEquals("val3", ref.getName());
-        assertEquals(1, ref.getProperties().size());
-        assertEquals("bar", ref.getProperties().get("foo"));
+        assertTrue(task.getConditionSet().hasPrimaryProperty());
+        assertEquals(RulesPlugin.CONDITION_CLASS_TURN_ON, task.getConditionSet().getPrimaryProperty().getContainerClassContext().getContainerClassId());
+        assertNotNull(task.getConditionSet().getPrimaryProperty().getPropertyValue("device"));
+        assertEquals("com.whizzosoftware.hobson.server-zwave", ((DeviceContext) task.getConditionSet().getPrimaryProperty().getPropertyValue("device")).getPluginId());
+        assertEquals("zwave-32", ((DeviceContext) task.getConditionSet().getPrimaryProperty().getPropertyValue("device")).getDeviceId());
+        assertTrue(task.getActionSet().hasId());
+        assertEquals("actionset1", task.getActionSet().getId());
     }
 
     @Test
-    public void testJsonWithVariableComparatorConstructor() throws Exception {
-        String json = "{'name':'rule1','conditions':[{'event':'variableUpdate','pluginId':'com.whizzosoftware.hobson.server-zwave','deviceId':'zwave-32','variable':{'name':'color','comparator':'=','value':'rgb(0,0,0)'}}],'actions':[{'pluginId':'com.whizzosoftware.hobson.server-api','actionId':'log','name':'My Action','properties':{'message':'log'}}]}";
-        JSONObject jsonObj = new JSONObject(new JSONTokener(json));
+    public void testConstructorWithTurnOffCondition() throws Exception {
+        HubContext hctx = HubContext.createLocal();
+        PluginContext pctx = PluginContext.create(hctx, "plugin1");
 
-        JRETask task = new JRETask("provider1", jsonObj);
+        JRETask task = new JRETask(
+            TaskContext.create(pctx, "task1"),
+            "rule1",
+            new PropertyContainerSet(
+                new PropertyContainer(
+                    PropertyContainerClassContext.create(pctx, RulesPlugin.CONDITION_CLASS_TURN_OFF),
+                    Collections.singletonMap("device", (Object) DeviceContext.createLocal("com.whizzosoftware.hobson.hobson-hub-zwave", "zwave-32"))
+                )
+            ),
+            new PropertyContainerSet("actionset1", null)
+        );
 
-        assertEquals("provider1", task.getProviderId());
-        assertNotNull(task.getId());
+        assertNotNull(task.getContext());
+        assertNotNull(task.getContext().getTaskId());
         assertEquals("rule1", task.getName());
-        assertEquals(HobsonTask.Type.EVENT, task.getType());
 
-        assertEquals(1, task.getConditions().size());
-        Map<String,Object> map = task.getConditions().iterator().next();
-        assertEquals("variableUpdate", map.get("event"));
-        assertEquals("com.whizzosoftware.hobson.server-zwave", map.get("pluginId"));
-        assertEquals("zwave-32", map.get("deviceId"));
-        assertEquals("color", map.get("name"));
-        assertEquals("=", map.get("comparator"));
-        assertEquals("rgb(0,0,0)", map.get("value"));
+        assertTrue(task.getConditionSet().hasPrimaryProperty());
+        assertEquals(RulesPlugin.CONDITION_CLASS_TURN_OFF, task.getConditionSet().getPrimaryProperty().getContainerClassContext().getContainerClassId());
+        assertNotNull(task.getConditionSet().getPrimaryProperty().getPropertyValue("device"));
+        assertEquals("com.whizzosoftware.hobson.hobson-hub-zwave", ((DeviceContext) task.getConditionSet().getPrimaryProperty().getPropertyValue("device")).getPluginId());
+        assertEquals("zwave-32", ((DeviceContext) task.getConditionSet().getPrimaryProperty().getPropertyValue("device")).getDeviceId());
 
-        assertEquals(1, task.getActions().size());
-        HobsonActionRef ref = task.getActions().iterator().next();
-        assertEquals("com.whizzosoftware.hobson.server-api", ref.getPluginId());
-        assertEquals("log", ref.getActionId());
-        assertEquals(1, ref.getProperties().size());
-        assertEquals("log", ref.getProperties().get("message"));
+        assertEquals("actionset1", task.getActionSet().getId());
     }
 
     @Test
-    public void testJsonWithTurnOffChangeIdConstructor() throws Exception {
-        String json = "{'name':'rule1','conditions':[{'event':'variableUpdate','pluginId':'com.whizzosoftware.hobson.server-zwave','deviceId':'zwave-32','changeId':'turnOff'}],'actions':[{'pluginId':'com.whizzosoftware.hobson.server-api','actionId':'log','name':'My Action','properties':{'message':'log'}}]}";
-        JSONObject jsonObj = new JSONObject(new JSONTokener(json));
+    public void testJsonConstructorWithTurnOnCondition() throws Exception {
+        HubContext hctx = HubContext.createLocal();
+        PluginContext pctx = PluginContext.create(hctx, "plugin1");
 
-        JRETask task = new JRETask("provider1", jsonObj);
+        JRETask task = new JRETask(
+            TaskContext.create(pctx, "task1"),
+            "rule2",
+            new PropertyContainerSet(
+                new PropertyContainer(
+                    PropertyContainerClassContext.create(pctx, RulesPlugin.CONDITION_CLASS_TURN_ON),
+                    Collections.singletonMap("device", (Object)DeviceContext.createLocal("com.whizzosoftware.hobson.hobson-hub-zwave", "zwave-32"))
+                )
+            ),
+            new PropertyContainerSet("actionset2", null)
+        );
 
-        assertEquals("provider1", task.getProviderId());
-        assertNotNull(task.getId());
-        assertEquals("rule1", task.getName());
-        assertEquals(HobsonTask.Type.EVENT, task.getType());
+        assertNotNull(task.getContext());
+        assertNotNull(task.getContext().getTaskId());
+        assertEquals("rule2", task.getName());
 
-        assertEquals(1, task.getConditions().size());
-        Map<String,Object> map = task.getConditions().iterator().next();
-        assertEquals("variableUpdate", map.get("event"));
-        assertEquals("com.whizzosoftware.hobson.server-zwave", map.get("pluginId"));
-        assertEquals("zwave-32", map.get("deviceId"));
-        assertEquals("turnOff", map.get("changeId"));
+        assertTrue(task.getConditionSet().hasPrimaryProperty());
+        assertEquals(RulesPlugin.CONDITION_CLASS_TURN_ON, task.getConditionSet().getPrimaryProperty().getContainerClassContext().getContainerClassId());
+        assertNotNull(task.getConditionSet().getPrimaryProperty().getPropertyValue("device"));
+        assertEquals("com.whizzosoftware.hobson.hobson-hub-zwave", ((DeviceContext) task.getConditionSet().getPrimaryProperty().getPropertyValue("device")).getPluginId());
+        assertEquals("zwave-32", ((DeviceContext) task.getConditionSet().getPrimaryProperty().getPropertyValue("device")).getDeviceId());
 
-        assertEquals(1, task.getActions().size());
-        HobsonActionRef ref = task.getActions().iterator().next();
-        assertEquals("com.whizzosoftware.hobson.server-api", ref.getPluginId());
-        assertEquals("log", ref.getActionId());
-        assertEquals(1, ref.getProperties().size());
-        assertEquals("log", ref.getProperties().get("message"));
+        assertEquals("actionset2", task.getActionSet().getId());
     }
 
-    @Test
-    public void testJsonWithTurnOnChangeIdConstructor() throws Exception {
-        String json = "{'name':'rule1','conditions':[{'event':'variableUpdate','pluginId':'com.whizzosoftware.hobson.server-zwave','deviceId':'zwave-32','changeId':'turnOn'}],'actions':[{'pluginId':'com.whizzosoftware.hobson.server-api','actionId':'log','name':'My Action','properties':{'message':'message1'}}]}";
-        JSONObject jsonObj = new JSONObject(new JSONTokener(json));
-
-        JRETask task = new JRETask("provider1", jsonObj);
-
-        assertEquals("provider1", task.getProviderId());
-        assertNotNull(task.getId());
-        assertEquals("rule1", task.getName());
-        assertEquals(HobsonTask.Type.EVENT, task.getType());
-
-        assertEquals(1, task.getConditions().size());
-        Map<String,Object> map = task.getConditions().iterator().next();
-        assertEquals("variableUpdate", map.get("event"));
-        assertEquals("com.whizzosoftware.hobson.server-zwave", map.get("pluginId"));
-        assertEquals("zwave-32", map.get("deviceId"));
-        assertEquals("turnOn", map.get("changeId"));
-
-        assertEquals(1, task.getActions().size());
-        HobsonActionRef ref = task.getActions().iterator().next();
-        assertEquals("com.whizzosoftware.hobson.server-api", ref.getPluginId());
-        assertEquals("log", ref.getActionId());
-        assertEquals(1, ref.getProperties().size());
-        assertEquals("message1", ref.getProperties().get("message"));
-    }
 }

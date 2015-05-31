@@ -8,21 +8,23 @@
 package com.whizzosoftware.hobson.rules.jruleengine;
 
 import com.whizzosoftware.hobson.api.HobsonRuntimeException;
-import com.whizzosoftware.hobson.api.action.HobsonActionRef;
-import com.whizzosoftware.hobson.api.action.ActionManager;
+import com.whizzosoftware.hobson.api.device.DeviceContext;
 import com.whizzosoftware.hobson.api.event.HobsonEvent;
 import com.whizzosoftware.hobson.api.event.PresenceUpdateEvent;
 import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
-import com.whizzosoftware.hobson.api.task.HobsonTask;
-import com.whizzosoftware.hobson.api.task.TaskException;
-import com.whizzosoftware.hobson.api.task.TaskProvider;
+import com.whizzosoftware.hobson.api.plugin.PluginContext;
+import com.whizzosoftware.hobson.api.property.PropertyContainer;
+import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
+import com.whizzosoftware.hobson.api.property.PropertyContainerSet;
+import com.whizzosoftware.hobson.api.task.*;
 import com.whizzosoftware.hobson.api.util.filewatch.FileWatcherListener;
 import com.whizzosoftware.hobson.api.util.filewatch.FileWatcherThread;
 import com.whizzosoftware.hobson.api.variable.VariableUpdate;
+import com.whizzosoftware.hobson.rules.RulesPlugin;
+import com.whizzosoftware.hobson.rules.condition.*;
 import org.jruleengine.rule.RuleImpl;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import org.json.JSONTokener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,9 +43,8 @@ import java.util.*;
 public class JRETaskProvider implements TaskProvider, FileWatcherListener {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private volatile ActionManager actionManager;
-
-    private String pluginId;
+    private PluginContext pluginContext;
+    private TaskManager taskManager;
     private String ruleUri;
     private File rulesFile;
     private RuleServiceProvider provider;
@@ -55,12 +56,12 @@ public class JRETaskProvider implements TaskProvider, FileWatcherListener {
     /**
      * Constructor.
      *
-     * @param pluginId the plugin ID that is creating the task
+     * @param pluginContext the context of the plugin creating tasks
      */
-    public JRETaskProvider(String pluginId) {
+    public JRETaskProvider(PluginContext pluginContext) {
         try {
             Class.forName("org.jruleengine.RuleServiceProviderImpl");
-            this.pluginId = pluginId;
+            this.pluginContext = pluginContext;
             provider = RuleServiceProviderManager.getRuleServiceProvider("org.jruleengine");
             administrator = provider.getRuleAdministrator();
             logger.debug("Acquired RuleAdministrator: {}", administrator);
@@ -70,18 +71,12 @@ public class JRETaskProvider implements TaskProvider, FileWatcherListener {
         }
     }
 
-    @Override
-    public String getPluginId() {
-        return pluginId;
+    public void setTaskManager(TaskManager taskManager) {
+        this.taskManager = taskManager;
     }
 
-    @Override
-    public String getId() {
-        return pluginId;
-    }
-
-    public void setActionManager(ActionManager actionManager) {
-        this.actionManager = actionManager;
+    protected Collection<HobsonTask> getTasks() {
+        return tasks.values();
     }
 
     synchronized public void setRulesFile(File rulesFile) {
@@ -114,6 +109,24 @@ public class JRETaskProvider implements TaskProvider, FileWatcherListener {
         }
     }
 
+    protected void clearAllTasks() {
+        tasks.clear();
+        if (taskManager != null) {
+            taskManager.unpublishAllTasks(pluginContext);
+        } else {
+            logger.error("No task manager set; unable to clear tasks");
+        }
+    }
+
+    protected void addTask(JRETask task) {
+        tasks.put(task.getContext().getTaskId(), task);
+        if (taskManager != null) {
+            taskManager.publishTask(task);
+        } else {
+            logger.error("No task manager set; unable to publish task");
+        }
+    }
+
     synchronized public void loadRules(InputStream rules) throws Exception {
         // create execution set
         Map props = new HashMap();
@@ -123,11 +136,11 @@ public class JRETaskProvider implements TaskProvider, FileWatcherListener {
         ruleUri = res.getName();
 
         // build rule descriptors
-        tasks.clear();
+        clearAllTasks();
         for (Object o : res.getRules()) {
             if (o instanceof Rule) {
-                JRETask task = new JRETask(pluginId, (RuleImpl)o);
-                tasks.put(task.getId(), task);
+                JRETask task = new JRETask(pluginContext, (RuleImpl)o);
+                addTask(task);
             } else {
                 logger.error("Found rule that didn't conform to interface: {}", o);
             }
@@ -157,13 +170,13 @@ public class JRETaskProvider implements TaskProvider, FileWatcherListener {
                 for (VariableUpdate update : vune.getUpdates()) {
                     List inputList = new LinkedList();
                     inputList.add(new JREEventContext(update));
-                    inputList.add(new JREActionContext(actionManager));
+                    inputList.add(new JRETaskContext(pluginContext.getHubContext(), taskManager));
                     session.executeRules(inputList);
                 }
             } else if (event instanceof PresenceUpdateEvent) {
                 List inputList = new LinkedList();
                 inputList.add(new JREEventContext((PresenceUpdateEvent)event));
-                inputList.add(new JREActionContext(actionManager));
+                inputList.add(new JRETaskContext(pluginContext.getHubContext(), taskManager));
                 session.executeRules(inputList);
             }
         } catch (Exception e) {
@@ -194,35 +207,25 @@ public class JRETaskProvider implements TaskProvider, FileWatcherListener {
     }
 
     @Override
-    public Collection<HobsonTask> getTasks() {
-        logger.trace("Retrieving task list: {}" + tasks);
-        return tasks.values();
-    }
-
-    @Override
-    public HobsonTask getTask(String taskId) {
-        return tasks.get(taskId);
-    }
-
-    @Override
-    synchronized public void addTask(Object task) {
+    public void onCreateTask(String name, PropertyContainerSet conditionSet, PropertyContainerSet actionSet) {
         try {
+            JRETask task = new JRETask(TaskContext.create(pluginContext, UUID.randomUUID().toString()), name, conditionSet, actionSet);
             logger.trace("Adding new task: {}", task);
-            JRETask jret = new JRETask(pluginId, (JSONObject)task);
-            tasks.put(jret.getId(), jret);
+            tasks.put(task.getContext().getTaskId(), task);
             writeRuleFile();
         } catch (Exception e) {
             throw new TaskException("Error adding task", e);
         }
     }
 
+
     @Override
-    synchronized public void updateTask(String taskId, Object task) {
+    public void onUpdateTask(TaskContext ctx, String name, PropertyContainerSet conditionSet, PropertyContainerSet actionSet) {
         try {
-            JRETask jret = (JRETask)tasks.get(taskId);
+            JRETask jret = (JRETask)tasks.get(ctx.getTaskId());
             if (jret != null) {
-                tasks.remove(taskId);
-                tasks.put(taskId, new JRETask(jret.getProviderId(), (JSONObject)task));
+                tasks.remove(ctx.getTaskId());
+                tasks.put(ctx.getTaskId(), new JRETask(ctx, name, conditionSet, actionSet));
                 writeRuleFile();
             } else {
                 throw new RuntimeException("Task not found");
@@ -233,12 +236,12 @@ public class JRETaskProvider implements TaskProvider, FileWatcherListener {
     }
 
     @Override
-    synchronized public void deleteTask(String taskId) {
+    public void onDeleteTask(TaskContext ctx) {
         try {
-            JRETask task = (JRETask) tasks.get(taskId);
+            JRETask task = (JRETask)tasks.get(ctx.getTaskId());
             if (task != null) {
-                logger.trace("Removing task: {}", taskId);
-                tasks.remove(taskId);
+                logger.trace("Removing task: {}", ctx.getTaskId());
+                tasks.remove(ctx.getTaskId());
                 writeRuleFile();
             } else {
                 throw new RuntimeException("Task not found");
@@ -256,45 +259,30 @@ public class JRETaskProvider implements TaskProvider, FileWatcherListener {
         rootJson.put("name", "Hobson Rules");
         rootJson.put("description", "Hobson Rules");
 
-        JSONArray synArray = new JSONArray();
-        JSONObject syn = new JSONObject();
-        syn.put("name", "event");
-        syn.put("class", "com.whizzosoftware.hobson.rules.jruleengine.JREEventContext");
-        synArray.put(syn);
-
-        syn = new JSONObject();
-        syn.put("name", "actions");
-        syn.put("class", "com.whizzosoftware.hobson.rules.jruleengine.JREActionContext");
-        synArray.put(syn);
-
-        rootJson.put("synonyms", synArray);
-
         if (tasks.size() > 0) {
             JSONArray rulesArray = new JSONArray();
             for (HobsonTask task : tasks.values()) {
                 JSONObject rule = new JSONObject();
-                rule.put("name", task.getId());
+                rule.put("name", task.getContext().getTaskId());
                 rule.put("description", task.getName());
 
-                JSONArray assumptions = new JSONArray();
-                if (task.getConditions().size() > 0) {
-                    for (Map<String,Object> conditionMap : task.getConditions()) {
-                        createAssumptionJson(conditionMap, assumptions);
+                JSONArray ruleAssumps = new JSONArray();
+                if (task.getConditionSet().hasPrimaryProperty()) {
+                    createAssumptionJson(task.getConditionSet().getPrimaryProperty(), ruleAssumps);
+                }
+                if (task.getConditionSet().hasProperties()) {
+                    for (PropertyContainer condition : task.getConditionSet().getProperties()) {
+                        createAssumptionJson(condition, ruleAssumps);
                     }
                 }
-                rule.put("assumptions", assumptions);
+                rule.put("assumptions", ruleAssumps);
 
                 JSONArray actions = new JSONArray();
-                if (task.getActions().size() > 0) {
-                    for (HobsonActionRef ref : task.getActions()) {
-                        JSONObject action = new JSONObject();
-                        action.put("method", "actions.executeAction");
-                        action.put("arg1", ref.getPluginId());
-                        action.put("arg2", ref.getActionId());
-                        action.put("arg3", ref.getName());
-                        action.put("arg4", new JSONObject(ref.getProperties()).toString());
-                        actions.put(action);
-                    }
+                if (task.getActionSet().hasId()) {
+                    JSONObject action = new JSONObject();
+                    action.put("method", ConditionConstants.EXECUTE_ACTIONSET);
+                    action.put("arg1", task.getActionSet().getId());
+                    actions.put(action);
                 }
                 rule.put("actions", actions);
 
@@ -307,55 +295,23 @@ public class JRETaskProvider implements TaskProvider, FileWatcherListener {
         writer.close();
     }
 
-    protected void createAssumptionJson(Map<String,Object> conditionMap, JSONArray a) {
-        if ("variableUpdate".equals(conditionMap.get("event"))) {
-            JSONObject json = new JSONObject();
-            json.put("leftTerm", "event.eventId");
-            json.put("op", "=");
-            json.put("rightTerm", conditionMap.get("event"));
-            a.put(json);
+    protected JSONObject createJSONCondition(String leftTerm, String comparator, String rightTerm) {
+        JSONObject json = new JSONObject();
+        json.put("leftTerm", leftTerm);
+        json.put("op", comparator);
+        json.put("rightTerm", rightTerm);
+        return json;
+    }
 
-            json = new JSONObject();
-            json.put("leftTerm", "event.pluginId");
-            json.put("op", "=");
-            json.put("rightTerm", conditionMap.get("pluginId"));
-            a.put(json);
-
-            json = new JSONObject();
-            json.put("leftTerm", "event.deviceId");
-            json.put("op", "=");
-            json.put("rightTerm", conditionMap.get("deviceId"));
-            a.put(json);
-
-            json = new JSONObject();
-            json.put("leftTerm", "event.variableName");
-            json.put("op", "=");
-            json.put("rightTerm", conditionMap.get("name"));
-            a.put(json);
-
-            json = new JSONObject();
-            json.put("leftTerm", "event.variableValue");
-            json.put("op", conditionMap.get("comparator"));
-            json.put("rightTerm", conditionMap.get("value").toString());
-            a.put(json);
-        } else if ("presenceUpdate".equals(conditionMap.get("event"))) {
-            JSONObject json = new JSONObject();
-            json.put("leftTerm", "event.eventId");
-            json.put("op", "=");
-            json.put("rightTerm", conditionMap.get("event"));
-            a.put(json);
-
-            json = new JSONObject();
-            json.put("leftTerm", "event.entityId");
-            json.put("op", "=");
-            json.put("rightTerm", conditionMap.get("entityId"));
-            a.put(json);
-
-            json = new JSONObject();
-            json.put("leftTerm", "event.location");
-            json.put("op", "=");
-            json.put("rightTerm", conditionMap.get("location"));
-            a.put(json);
+    protected void createAssumptionJson(PropertyContainer condition, JSONArray a) {
+        PropertyContainerClassContext tccc = condition.getContainerClassContext();
+        if (tccc.getContainerClassId().equals(RulesPlugin.CONDITION_CLASS_TURN_ON) || tccc.getContainerClassId().equals(RulesPlugin.CONDITION_CLASS_TURN_OFF)) {
+            a.put(createJSONCondition(ConditionConstants.EVENT_ID, "=", VariableUpdateNotificationEvent.ID));
+            DeviceContext ctx = (DeviceContext)condition.getPropertyValue("device");
+            a.put(createJSONCondition(ConditionConstants.PLUGIN_ID, "=", ctx.getPluginId()));
+            a.put(createJSONCondition(ConditionConstants.DEVICE_ID, "=", ctx.getDeviceId()));
+            a.put(createJSONCondition(ConditionConstants.VARIABLE_NAME, "=", "on"));
+            a.put(createJSONCondition(ConditionConstants.VARIABLE_VALUE, "=", (tccc.getContainerClassId().equals(RulesPlugin.CONDITION_CLASS_TURN_ON)) ? "true" : "false"));
         }
     }
 }

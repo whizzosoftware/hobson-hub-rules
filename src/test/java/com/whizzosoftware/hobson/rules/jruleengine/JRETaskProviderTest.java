@@ -7,12 +7,18 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.rules.jruleengine;
 
-import com.whizzosoftware.hobson.api.action.HobsonActionRef;
-import com.whizzosoftware.hobson.api.action.MockActionManager;
+import com.whizzosoftware.hobson.api.device.DeviceContext;
 import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
+import com.whizzosoftware.hobson.api.plugin.PluginContext;
+import com.whizzosoftware.hobson.api.property.PropertyContainer;
+import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
+import com.whizzosoftware.hobson.api.property.PropertyContainerSet;
 import com.whizzosoftware.hobson.api.task.HobsonTask;
+import com.whizzosoftware.hobson.api.task.MockTaskManager;
 import com.whizzosoftware.hobson.api.variable.VariableConstants;
 import com.whizzosoftware.hobson.api.variable.VariableUpdate;
+import com.whizzosoftware.hobson.rules.RulesPlugin;
+import com.whizzosoftware.hobson.rules.condition.*;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -22,15 +28,14 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileReader;
+import java.io.*;
 import java.util.Collection;
+import java.util.Collections;
 
 public class JRETaskProviderTest {
     @Test
     public void testEmptyRuleConstruction() throws Exception {
-        JRETaskProvider provider = new JRETaskProvider("pluginId");
+        JRETaskProvider provider = new JRETaskProvider(PluginContext.createLocal("pluginId"));
 
         // validate we start with a non-existent temp file
         File ruleFile = File.createTempFile("rules", ".json");
@@ -45,8 +50,8 @@ public class JRETaskProviderTest {
             JSONObject json = new JSONObject(new JSONTokener(new FileReader(ruleFile)));
             assertPrefix(json);
 
-            assertTrue(json.has("synonyms"));
-            assertSynonyms(json.getJSONArray("synonyms"));
+//            assertTrue(json.has("synonyms"));
+//            assertSynonyms(json.getJSONArray("synonyms"));
 
             assertFalse(json.has("rules"));
         } finally {
@@ -55,8 +60,9 @@ public class JRETaskProviderTest {
     }
 
     @Test
-    public void testJSONRuleConstruction() throws Exception {
-        JRETaskProvider provider = new JRETaskProvider("pluginId");
+    public void testRuleConstruction() throws Exception {
+        PluginContext pctx = PluginContext.createLocal("pluginId");
+        JRETaskProvider provider = new JRETaskProvider(pctx);
 
         // validate we start with a non-existent temp file
         File ruleFile = File.createTempFile("rules", ".json");
@@ -65,16 +71,25 @@ public class JRETaskProviderTest {
 
         try {
             provider.setRulesFile(ruleFile);
-            JSONObject json = new JSONObject(new JSONTokener("{'name':'My Task','conditions':[{'event':'variableUpdate','pluginId':'com.whizzosoftware.hobson.hobson-hub-zwave','deviceId':'zwave-32','variable':{'name':'on','comparator':'=','value':false}}],'actions':[{'pluginId':'com.whizzosoftware.hobson.server-api','actionId':'log','name':'My Action','properties':{'message':'log'}}]}"));
-            provider.addTask(json);
+
+            provider.onCreateTask(
+                "My Task",
+                new PropertyContainerSet(
+                    new PropertyContainer(
+                        PropertyContainerClassContext.create(pctx, RulesPlugin.CONDITION_CLASS_TURN_OFF),
+                        Collections.singletonMap("device", (Object) DeviceContext.createLocal("com.whizzosoftware.hobson.hobson-hub-zwave", "zwave-32"))
+                    )
+                ),
+                new PropertyContainerSet("actionset1", null)
+            );
 
             // make sure the provider updated the rule file
             assertTrue(ruleFile.exists());
             JSONObject jobj = new JSONObject(new JSONTokener(new FileReader(ruleFile)));
             assertPrefix(jobj);
 
-            assertTrue(jobj.has("synonyms"));
-            assertSynonyms(jobj.getJSONArray("synonyms"));
+//            assertTrue(jobj.has("synonyms"));
+//            assertSynonyms(jobj.getJSONArray("synonyms"));
 
             assertTrue(jobj.has("rules"));
 
@@ -89,34 +104,31 @@ public class JRETaskProviderTest {
             JSONArray conditions = rule.getJSONArray("assumptions");
             assertEquals(5, conditions.length());
             JSONObject condition = conditions.getJSONObject(0);
-            assertEquals("event.eventId", condition.getString("leftTerm"));
+            assertEquals(ConditionConstants.EVENT_ID, condition.getString("leftTerm"));
             assertEquals("=", condition.getString("op"));
-            assertEquals("variableUpdate", condition.getString("rightTerm"));
+            assertEquals(VariableUpdateNotificationEvent.ID, condition.getString("rightTerm"));
             condition = conditions.getJSONObject(1);
-            assertEquals("event.pluginId", condition.getString("leftTerm"));
+            assertEquals(ConditionConstants.PLUGIN_ID, condition.getString("leftTerm"));
             assertEquals("=", condition.getString("op"));
             assertEquals("com.whizzosoftware.hobson.hobson-hub-zwave", condition.getString("rightTerm"));
             condition = conditions.getJSONObject(2);
-            assertEquals("event.deviceId", condition.getString("leftTerm"));
+            assertEquals(ConditionConstants.DEVICE_ID, condition.getString("leftTerm"));
             assertEquals("=", condition.getString("op"));
             assertEquals("zwave-32", condition.getString("rightTerm"));
             condition = conditions.getJSONObject(3);
-            assertEquals("event.variableName", condition.getString("leftTerm"));
+            assertEquals(ConditionConstants.VARIABLE_NAME, condition.getString("leftTerm"));
             assertEquals("=", condition.getString("op"));
             assertEquals("on", condition.getString("rightTerm"));
             condition = conditions.getJSONObject(4);
-            assertEquals("event.variableValue", condition.getString("leftTerm"));
+            assertEquals(ConditionConstants.VARIABLE_VALUE, condition.getString("leftTerm"));
             assertEquals("=", condition.getString("op"));
             assertEquals("false", condition.getString("rightTerm"));
 
             JSONArray actions = rule.getJSONArray("actions");
             assertEquals(1, actions.length());
             JSONObject action = actions.getJSONObject(0);
-            assertEquals("actions.executeAction", action.getString("method"));
-            assertEquals("com.whizzosoftware.hobson.server-api", action.getString("arg1"));
-            assertEquals("log", action.getString("arg2"));
-            assertEquals("My Action", action.getString("arg3"));
-            assertEquals("{\"message\":\"log\"}", action.getString("arg4"));
+            assertEquals(ConditionConstants.EXECUTE_ACTIONSET, action.getString("method"));
+            assertEquals("actionset1", action.getString("arg1"));
         } finally {
             assertTrue(ruleFile.delete());
         }
@@ -124,96 +136,145 @@ public class JRETaskProviderTest {
 
     @Test
     public void testRuleExecution() throws Exception {
-        MockActionManager actionContext = new MockActionManager();
-        JRETaskProvider engine = new JRETaskProvider("pluginId");
-        engine.setActionManager(actionContext);
+        MockTaskManager taskManager = new MockTaskManager();
+        JRETaskProvider engine = new JRETaskProvider(PluginContext.createLocal("pluginId"));
+        engine.setTaskManager(taskManager);
         String rulesJson = "{\n" +
-                "\t\"name\": \"Hobson Rules\",\n" +
-                "\t\"description\": \"Hobson Rules\",\n" +
-                "\t\"synonyms\": [\n" +
-                "\t\t{\n" +
-                "\t\t\t\"name\": \"event\", \n" +
-                "\t\t\t\"class\": \"com.whizzosoftware.hobson.rules.jruleengine.JREEventContext\"\n" +
-                "\t\t},\n" +
-                "\t\t{\n" +
-                "\t\t\t\"name\": \"actions\", \n" +
-                "\t\t\t\"class\": \"com.whizzosoftware.hobson.rules.jruleengine.JREActionContext\"\n" +
-                "\t\t}\n" +
-                "\t],\n" +
-                "\t\"rules\": [\n" +
-                "\t\t{\n" +
-                "\t\t\t\"name\": \"ruleid1\", \n" +
-                "\t\t\t\"description\": \"test rule\",\n" +
-                "\t\t\t\"assumptions\": [\n" +
-                "\t\t\t\t{\n" +
-                "\t\t\t\t\t\"leftTerm\": \"event.eventId\",\n" +
-                "\t\t\t\t\t\"op\": \"=\",\n" +
-                "\t\t\t\t\t\"rightTerm\": \"variableUpdate\"\n" +
-                "\t\t\t\t},\n" +
-                "\t\t\t\t{\n" +
-                "\t\t\t\t\t\"leftTerm\": \"event.pluginId\",\n" +
-                "\t\t\t\t\t\"op\": \"=\",\n" +
-                "\t\t\t\t\t\"rightTerm\": \"comwhizzosoftwarehobsonserver-zwave\"\n" +
-                "\t\t\t\t},\n" +
-                "\t\t\t\t{\n" +
-                "\t\t\t\t\t\"leftTerm\": \"event.deviceId\",\n" +
-                "\t\t\t\t\t\"op\": \"=\",\n" +
-                "\t\t\t\t\t\"rightTerm\": \"zwave-32\"\n" +
-                "\t\t\t\t},\n" +
-                "\t\t\t\t{\n" +
-                "\t\t\t\t\t\"leftTerm\": \"event.variableName\",\n" +
-                "\t\t\t\t\t\"op\": \"=\",\n" +
-                "\t\t\t\t\t\"rightTerm\": \"on\"\n" +
-                "\t\t\t\t},\n" +
-                "\t\t\t\t{\n" +
-                "\t\t\t\t\t\"leftTerm\": \"event.variableValue\",\n" +
-                "\t\t\t\t\t\"op\": \"=\",\n" +
-                "\t\t\t\t\t\"rightTerm\": \"true\"\n" +
-                "\t\t\t\t}\n" +
-                "\t\t\t],\n" +
-                "\t\t\t\"actions\": [\n" +
-                "\t\t\t\t{\n" +
-                "\t\t\t\t\t\"method\": \"actions.executeAction\",\n" +
-                "\t\t\t\t\t\"arg1\": \"com.whizzosoftware.hobson.server-api\",\n" +
-                "\t\t\t\t\t\"arg2\": \"setVariable\",\n" +
-                "\t\t\t\t\t\"arg3\": \"My Action\",\n" +
-                "\t\t\t\t\t\"arg4\": \"{'pluginId':'com.whizzosoftware.hobson.server-zwave','deviceId':'zwave-32','variableName':'on','value':false}\",\n" +
-                "\t\t\t\t}\n" +
-                "\t\t\t]\n" +
-                "\t\t}\n" +
-                "\t]\n" +
-                "}";
+            "\t\"name\": \"Hobson Rules\",\n" +
+            "\t\"description\": \"Hobson Rules\",\n" +
+            "\t\"synonyms\": [\n" +
+            "\t\t{\n" +
+            "\t\t\t\"name\": \"event\", \n" +
+            "\t\t\t\"class\": \"com.whizzosoftware.hobson.rules.jruleengine.JREEventContext\"\n" +
+            "\t\t},\n" +
+            "\t\t{\n" +
+            "\t\t\t\"name\": \"taskManager\", \n" +
+            "\t\t\t\"class\": \"com.whizzosoftware.hobson.rules.jruleengine.JRETaskContext\"\n" +
+            "\t\t}\n" +
+            "\t],\n" +
+            "\t\"rules\": [\n" +
+            "\t\t{\n" +
+            "\t\t\t\"name\": \"ruleid1\", \n" +
+            "\t\t\t\"description\": \"test rule\",\n" +
+            "\t\t\t\"assumptions\": [\n" +
+            "\t\t\t\t{\n" +
+            "\t\t\t\t\t\"leftTerm\": \"event.eventId\",\n" +
+            "\t\t\t\t\t\"op\": \"=\",\n" +
+            "\t\t\t\t\t\"rightTerm\": \"" + VariableUpdateNotificationEvent.ID + "\"\n" +
+            "\t\t\t\t},\n" +
+            "\t\t\t\t{\n" +
+            "\t\t\t\t\t\"leftTerm\": \"event.pluginId\",\n" +
+            "\t\t\t\t\t\"op\": \"=\",\n" +
+            "\t\t\t\t\t\"rightTerm\": \"comwhizzosoftwarehobsonserver-zwave\"\n" +
+            "\t\t\t\t},\n" +
+            "\t\t\t\t{\n" +
+            "\t\t\t\t\t\"leftTerm\": \"event.deviceId\",\n" +
+            "\t\t\t\t\t\"op\": \"=\",\n" +
+            "\t\t\t\t\t\"rightTerm\": \"zwave-32\"\n" +
+            "\t\t\t\t},\n" +
+            "\t\t\t\t{\n" +
+            "\t\t\t\t\t\"leftTerm\": \"event.variableName\",\n" +
+            "\t\t\t\t\t\"op\": \"=\",\n" +
+            "\t\t\t\t\t\"rightTerm\": \"on\"\n" +
+            "\t\t\t\t},\n" +
+            "\t\t\t\t{\n" +
+            "\t\t\t\t\t\"leftTerm\": \"event.variableValue\",\n" +
+            "\t\t\t\t\t\"op\": \"=\",\n" +
+            "\t\t\t\t\t\"rightTerm\": \"true\"\n" +
+            "\t\t\t\t}\n" +
+            "\t\t\t],\n" +
+            "\t\t\t\"actions\": [\n" +
+            "\t\t\t\t{\n" +
+            "\t\t\t\t\t\"method\": \"taskManager.executeActionSet\",\n" +
+            "\t\t\t\t\t\"arg1\": \"actionset1\",\n" +
+            "\t\t\t\t}\n" +
+            "\t\t\t]\n" +
+            "\t\t}\n" +
+            "\t]\n" +
+            "}";
         engine.loadRules(new ByteArrayInputStream(rulesJson.getBytes()));
 
         Collection<HobsonTask> tasks = engine.getTasks();
         Assert.assertEquals(1, tasks.size());
         HobsonTask task = tasks.iterator().next();
-        Assert.assertNotNull("ruleid1", task.getId());
+        Assert.assertNotNull("ruleid1", task.getContext().getTaskId());
         Assert.assertEquals("test rule", task.getName());
-        Assert.assertEquals(1, task.getActions().size());
-        HobsonActionRef ref = task.getActions().iterator().next();
-        Assert.assertEquals("com.whizzosoftware.hobson.server-api", ref.getPluginId());
-        Assert.assertEquals("setVariable", ref.getActionId());
+        Assert.assertTrue(task.getActionSet().hasId());
+        Assert.assertEquals("actionset1", task.getActionSet().getId());
 
-        actionContext.reset();
-        Assert.assertEquals(0, actionContext.getSetVariableCount());
+        Assert.assertEquals(0, taskManager.getActionSetExecutions().size());
 
-        engine.processEvent(new VariableUpdateNotificationEvent(new VariableUpdate("comwhizzosoftwarehobsonserver-zwave", "zwave-32", VariableConstants.ON, true)));
+        engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableUpdate(DeviceContext.createLocal("comwhizzosoftwarehobsonserver-zwave", "zwave-32"), VariableConstants.ON, true)));
 
-        Assert.assertEquals(1, actionContext.getSetVariableCount());
+        Assert.assertEquals(1, taskManager.getActionSetExecutions().size());
+        Assert.assertEquals("actionset1", taskManager.getActionSetExecutions().get(0));
+    }
+
+    @Test
+    public void testRuleFileWrite() throws Exception {
+        File rulesFile = File.createTempFile("hobson-rules", "json");
+        rulesFile.deleteOnExit();
+
+        BufferedWriter writer = new BufferedWriter(new FileWriter(rulesFile));
+        writer.write(
+            "{\n" +
+            "\t\"name\": \"Hobson Rules\",\n" +
+            "\t\"description\": \"Hobson Rules\",\n" +
+            "\t\"synonyms\": [\n" +
+            "\t],\n" +
+            "\t\"rules\": [\n" +
+            "\t]\n" +
+            "}"
+        );
+        writer.close();
+
+        PluginContext ctx = PluginContext.createLocal("plugin1");
+        MockTaskManager taskManager = new MockTaskManager();
+        JRETaskProvider engine = new JRETaskProvider(ctx);
+        engine.setTaskManager(taskManager);
+        engine.setRulesFile(rulesFile);
+
+        engine.onCreateTask(
+            "New Task",
+            new PropertyContainerSet(
+                new PropertyContainer(
+                    PropertyContainerClassContext.create(ctx, RulesPlugin.CONDITION_CLASS_TURN_ON),
+                    Collections.singletonMap("device", (Object)DeviceContext.createLocal("plugin2", "device1"))
+                )
+            ),
+            new PropertyContainerSet(
+                "actionset1",
+                null
+            )
+        );
+
+        JSONObject json = new JSONObject(new JSONTokener(new FileInputStream(rulesFile)));
+
+        // test prefix
+        assertPrefix(json);
+
+        // test rule meta
+        assertTrue(json.has("rules"));
+        JSONArray rules = json.getJSONArray("rules");
+        assertEquals(1, rules.length());
+        JSONObject rule = rules.getJSONObject(0);
+        assertNotNull(rule.getString("name"));
+        assertEquals("New Task", rule.getString("description"));
+
+        // test rule assumptions
+        assertTrue(rule.has("assumptions"));
+        JSONArray assumptions = rule.getJSONArray("assumptions");
+        assertEquals(5, assumptions.length());
+        assertEquals(ConditionConstants.EVENT_ID, assumptions.getJSONObject(0).getString("leftTerm"));
+
+        // test rule actions
+        assertTrue(rule.has("actions"));
+        JSONArray actions = rule.getJSONArray("actions");
+        assertEquals(1, actions.length());
     }
 
     protected void assertPrefix(JSONObject json) throws JSONException {
         assertEquals("Hobson Rules", json.getString("name"));
         assertEquals("Hobson Rules", json.getString("description"));
-    }
-
-    protected void assertSynonyms(JSONArray synonyms) throws JSONException {
-        assertEquals(2, synonyms.length());
-        assertEquals("event", synonyms.getJSONObject(0).getString("name"));
-        assertEquals("com.whizzosoftware.hobson.rules.jruleengine.JREEventContext", synonyms.getJSONObject(0).getString("class"));
-        assertEquals("actions", synonyms.getJSONObject(1).getString("name"));
-        assertEquals("com.whizzosoftware.hobson.rules.jruleengine.JREActionContext", synonyms.getJSONObject(1).getString("class"));
-
     }
 }

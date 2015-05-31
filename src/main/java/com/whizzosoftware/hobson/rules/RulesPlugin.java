@@ -14,11 +14,14 @@ import com.whizzosoftware.hobson.api.event.PresenceUpdateEvent;
 import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.plugin.AbstractHobsonPlugin;
 import com.whizzosoftware.hobson.api.plugin.PluginStatus;
+import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
+import com.whizzosoftware.hobson.api.property.TypedProperty;
+import com.whizzosoftware.hobson.api.task.TaskProvider;
 import com.whizzosoftware.hobson.rules.jruleengine.JRETaskProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Dictionary;
+import java.util.Collections;
 
 /**
  * A plugin that provides event-based tasks using the JRuleEngine library.
@@ -27,6 +30,9 @@ import java.util.Dictionary;
  */
 public class RulesPlugin extends AbstractHobsonPlugin {
     private final static Logger logger = LoggerFactory.getLogger(RulesPlugin.class);
+
+    public static final String CONDITION_CLASS_TURN_ON = "turnOn";
+    public static final String CONDITION_CLASS_TURN_OFF = "turnOff";
 
     private JRETaskProvider taskProvider;
 
@@ -41,12 +47,22 @@ public class RulesPlugin extends AbstractHobsonPlugin {
 
     @Override
     public void onStartup(Configuration config) {
-        taskProvider = new JRETaskProvider(getId());
+        taskProvider = new JRETaskProvider(getContext());
+        taskProvider.setTaskManager(getTaskManager());
         taskProvider.setRulesFile(getDataFile("rules.json"));
-        publishTaskProvider(taskProvider);
 
-        setStatus(new PluginStatus(PluginStatus.Status.RUNNING));
+        // publish condition classes
+        publishConditionClass(PropertyContainerClassContext.create(getContext(), CONDITION_CLASS_TURN_ON), "A device or sensor turns on", Collections.singletonList(new TypedProperty("device", "Device", "The device to monitor", TypedProperty.Type.DEVICE)));
+        publishConditionClass(PropertyContainerClassContext.create(getContext(), CONDITION_CLASS_TURN_OFF), "A device or sensor turns off", Collections.singletonList(new TypedProperty("device", "Device", "The device to monitor", TypedProperty.Type.DEVICE)));
+
+        // set the plugin status to running
+        setStatus(PluginStatus.running());
         logger.debug("Rules plugin has started");
+    }
+
+    @Override
+    public String[] getEventTopics() {
+        return new String[] {EventTopics.PRESENCE_TOPIC};
     }
 
     @Override
@@ -55,12 +71,12 @@ public class RulesPlugin extends AbstractHobsonPlugin {
     }
 
     @Override
-    public void onRefresh() {}
+    public TaskProvider getTaskProvider() {
+        return taskProvider;
+    }
 
     @Override
-    public String[] getEventTopics() {
-        return new String[] {EventTopics.PRESENCE_TOPIC};
-    }
+    public void onRefresh() {}
 
     @Override
     public void onPluginConfigurationUpdate(Configuration config) {}

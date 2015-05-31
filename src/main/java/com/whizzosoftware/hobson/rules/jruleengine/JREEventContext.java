@@ -8,6 +8,7 @@
 package com.whizzosoftware.hobson.rules.jruleengine;
 
 import com.whizzosoftware.hobson.api.event.PresenceUpdateEvent;
+import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.variable.VariableUpdate;
 
 /**
@@ -26,7 +27,7 @@ public class JREEventContext {
     private String location;
 
     public JREEventContext(VariableUpdate update) {
-        this.eventId = "variableUpdate";
+        this.eventId = VariableUpdateNotificationEvent.ID;
         this.pluginId = update.getPluginId();
         this.deviceId = update.getDeviceId();
         this.variableName = update.getName();
