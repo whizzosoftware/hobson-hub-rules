@@ -7,13 +7,13 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.rules;
 
-import com.whizzosoftware.hobson.api.config.Configuration;
 import com.whizzosoftware.hobson.api.event.EventTopics;
 import com.whizzosoftware.hobson.api.event.HobsonEvent;
 import com.whizzosoftware.hobson.api.event.PresenceUpdateEvent;
 import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.plugin.AbstractHobsonPlugin;
 import com.whizzosoftware.hobson.api.plugin.PluginStatus;
+import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
 import com.whizzosoftware.hobson.api.task.TaskProvider;
@@ -46,7 +46,7 @@ public class RulesPlugin extends AbstractHobsonPlugin {
     }
 
     @Override
-    public void onStartup(Configuration config) {
+    public void onStartup(PropertyContainer config) {
         taskProvider = new JRETaskProvider(getContext());
         taskProvider.setTaskManager(getTaskManager());
         taskProvider.setRulesFile(getDataFile("rules.json"));
@@ -79,7 +79,7 @@ public class RulesPlugin extends AbstractHobsonPlugin {
     public void onRefresh() {}
 
     @Override
-    public void onPluginConfigurationUpdate(Configuration config) {}
+    public void onPluginConfigurationUpdate(PropertyContainer config) {}
 
     @Override
     public void onHobsonEvent(HobsonEvent event) {
