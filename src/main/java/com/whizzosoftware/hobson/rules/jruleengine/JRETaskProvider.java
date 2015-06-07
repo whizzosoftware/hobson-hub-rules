@@ -17,8 +17,6 @@ import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
 import com.whizzosoftware.hobson.api.property.PropertyContainerSet;
 import com.whizzosoftware.hobson.api.task.*;
-import com.whizzosoftware.hobson.api.util.filewatch.FileWatcherListener;
-import com.whizzosoftware.hobson.api.util.filewatch.FileWatcherThread;
 import com.whizzosoftware.hobson.api.variable.VariableUpdate;
 import com.whizzosoftware.hobson.rules.RulesPlugin;
 import com.whizzosoftware.hobson.rules.condition.*;
@@ -40,7 +38,7 @@ import java.util.*;
  *
  * @author Dan Noguerol
  */
-public class JRETaskProvider implements TaskProvider, FileWatcherListener {
+public class JRETaskProvider implements TaskProvider {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private PluginContext pluginContext;
@@ -50,7 +48,6 @@ public class JRETaskProvider implements TaskProvider, FileWatcherListener {
     private RuleServiceProvider provider;
     private RuleAdministrator administrator;
     private RuleRuntime runtime;
-    private FileWatcherThread watcherThread;
     private final Map<String,HobsonTask> tasks = new HashMap<>();
 
     /**
@@ -82,11 +79,6 @@ public class JRETaskProvider implements TaskProvider, FileWatcherListener {
     synchronized public void setRulesFile(File rulesFile) {
         this.rulesFile = rulesFile;
 
-        if (watcherThread != null) {
-            watcherThread.interrupt();
-            watcherThread = null;
-        }
-
         if (rulesFile != null) {
             try {
                 // create empty rules file if it doesn't exist
@@ -97,10 +89,6 @@ public class JRETaskProvider implements TaskProvider, FileWatcherListener {
                 // load the rules
                 logger.debug("Rules engine loading file: {}", rulesFile.getAbsolutePath());
                 loadRules(new FileInputStream(rulesFile));
-
-                // start watching the rules file for changes
-                watcherThread = new FileWatcherThread(rulesFile, this);
-                watcherThread.start();
             } catch (Exception e) {
                 throw new HobsonRuntimeException("Error loading rules file", e);
             }
@@ -123,7 +111,7 @@ public class JRETaskProvider implements TaskProvider, FileWatcherListener {
         if (taskManager != null) {
             taskManager.publishTask(task);
         } else {
-            logger.error("No task manager set; unable to publish task");
+            throw new HobsonRuntimeException("No task manager set; unable to publish task");
         }
     }
 
@@ -193,26 +181,18 @@ public class JRETaskProvider implements TaskProvider, FileWatcherListener {
     }
 
     @Override
-    public void onFileChanged(File rulesFile) {
+    public void onCreateTask(String name, String description, PropertyContainerSet conditionSet, PropertyContainerSet actionSet) {
         try {
-            if (rulesFile.getAbsolutePath().equals(this.rulesFile.getAbsolutePath())) {
-                logger.trace("Detected file change; reloading rules file");
-                loadRules(new FileInputStream(rulesFile));
-            } else {
-                setRulesFile(rulesFile);
-            }
-        } catch (Exception e) {
-            logger.error("Error loading rules file change", e);
-        }
-    }
-
-    @Override
-    public void onCreateTask(String name, PropertyContainerSet conditionSet, PropertyContainerSet actionSet) {
-        try {
-            JRETask task = new JRETask(TaskContext.create(pluginContext, UUID.randomUUID().toString()), name, conditionSet, actionSet);
+            JRETask task = new JRETask(TaskContext.create(pluginContext, UUID.randomUUID().toString()), name, description, conditionSet, actionSet);
             logger.trace("Adding new task: {}", task);
             tasks.put(task.getContext().getTaskId(), task);
+
+            // write to file
             writeRuleFile();
+
+            // re-load rules
+            loadRules(new FileInputStream(rulesFile));
+
         } catch (Exception e) {
             throw new TaskException("Error adding task", e);
         }
@@ -220,13 +200,18 @@ public class JRETaskProvider implements TaskProvider, FileWatcherListener {
 
 
     @Override
-    public void onUpdateTask(TaskContext ctx, String name, PropertyContainerSet conditionSet, PropertyContainerSet actionSet) {
+    public void onUpdateTask(TaskContext ctx, String name, String description, PropertyContainerSet conditionSet, PropertyContainerSet actionSet) {
         try {
             JRETask jret = (JRETask)tasks.get(ctx.getTaskId());
             if (jret != null) {
                 tasks.remove(ctx.getTaskId());
-                tasks.put(ctx.getTaskId(), new JRETask(ctx, name, conditionSet, actionSet));
+                tasks.put(ctx.getTaskId(), new JRETask(ctx, name, description, conditionSet, actionSet));
+
+                // add to file
                 writeRuleFile();
+
+                // re-load rules
+                loadRules(new FileInputStream(rulesFile));
             } else {
                 throw new RuntimeException("Task not found");
             }
@@ -242,7 +227,12 @@ public class JRETaskProvider implements TaskProvider, FileWatcherListener {
             if (task != null) {
                 logger.trace("Removing task: {}", ctx.getTaskId());
                 tasks.remove(ctx.getTaskId());
+
+                // write change to file
                 writeRuleFile();
+
+                // re-load rules
+                loadRules(new FileInputStream(rulesFile));
             } else {
                 throw new RuntimeException("Task not found");
             }

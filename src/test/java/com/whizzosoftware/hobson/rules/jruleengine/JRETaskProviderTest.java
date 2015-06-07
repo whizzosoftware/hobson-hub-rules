@@ -62,7 +62,9 @@ public class JRETaskProviderTest {
     @Test
     public void testRuleConstruction() throws Exception {
         PluginContext pctx = PluginContext.createLocal("pluginId");
+        MockTaskManager taskManager = new MockTaskManager();
         JRETaskProvider provider = new JRETaskProvider(pctx);
+        provider.setTaskManager(taskManager);
 
         // validate we start with a non-existent temp file
         File ruleFile = File.createTempFile("rules", ".json");
@@ -74,7 +76,7 @@ public class JRETaskProviderTest {
 
             provider.onCreateTask(
                 "My Task",
-                new PropertyContainerSet(
+                    null, new PropertyContainerSet(
                     new PropertyContainer(
                         PropertyContainerClassContext.create(pctx, RulesPlugin.CONDITION_CLASS_TURN_OFF),
                         Collections.singletonMap("device", (Object) DeviceContext.createLocal("com.whizzosoftware.hobson.hobson-hub-zwave", "zwave-32"))
@@ -236,7 +238,7 @@ public class JRETaskProviderTest {
 
         engine.onCreateTask(
             "New Task",
-            new PropertyContainerSet(
+                null, new PropertyContainerSet(
                 new PropertyContainer(
                     PropertyContainerClassContext.create(ctx, RulesPlugin.CONDITION_CLASS_TURN_ON),
                     Collections.singletonMap("device", (Object)DeviceContext.createLocal("plugin2", "device1"))

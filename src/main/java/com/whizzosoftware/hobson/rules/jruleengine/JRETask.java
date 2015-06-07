@@ -54,9 +54,10 @@ public class JRETask extends HobsonTask {
         }
     }
 
-    public JRETask(TaskContext context, String name, PropertyContainerSet conditionSet, PropertyContainerSet actionSet) {
+    public JRETask(TaskContext context, String name, String description, PropertyContainerSet conditionSet, PropertyContainerSet actionSet) {
         setContext(context);
         setName(name);
+        setDescription(description);
         setConditionSet(conditionSet);
         setActionSet(actionSet);
 

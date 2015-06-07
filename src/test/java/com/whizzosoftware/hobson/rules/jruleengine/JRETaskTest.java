@@ -114,6 +114,7 @@ public class JRETaskTest {
         JRETask task = new JRETask(
             TaskContext.create(pctx, "task1"),
             "rule1",
+            "rule desc",
             new PropertyContainerSet(
                 new PropertyContainer(
                     PropertyContainerClassContext.create(pctx, RulesPlugin.CONDITION_CLASS_TURN_OFF),
@@ -144,6 +145,7 @@ public class JRETaskTest {
         JRETask task = new JRETask(
             TaskContext.create(pctx, "task1"),
             "rule2",
+            "rule desc",
             new PropertyContainerSet(
                 new PropertyContainer(
                     PropertyContainerClassContext.create(pctx, RulesPlugin.CONDITION_CLASS_TURN_ON),
