@@ -84,21 +84,6 @@ public class JRETask extends HobsonTask {
     }
 
     /**
-     * Create list of assumptions based on a list of conditions.
-     *
-     * @param ctx the plugin context associated with the task
-     * @param conditions the conditions
-     */
-    protected ArrayList<Assumption> createAssumptions(PluginContext ctx, List<PropertyContainer> conditions) {
-        ArrayList<Assumption> ruleAssumps = new ArrayList<>();
-        for (PropertyContainer condition : conditions) {
-            ArrayList<Assumption> condAssumps = createConditionAssumptions(condition);
-            ruleAssumps.addAll(condAssumps);
-        }
-        return ruleAssumps;
-    }
-
-    /**
      * Creates a list of assumptions representing a condition.
      *
      * @param condition the condition

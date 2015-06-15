@@ -13,8 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This class encapsulates an ActionManager so JRuleEngine use it to execute actions. This is needed since JRuleEngine
- * only works with a flat list of arguments and ActionManager requires a Map.
+ * This class encapsulates an TaskManager so JRuleEngine use it to execute actions with the appropriate
+ * context.
  *
  * @author Dan Noguerol
  */
