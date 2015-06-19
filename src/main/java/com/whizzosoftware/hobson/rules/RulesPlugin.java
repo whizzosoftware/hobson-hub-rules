@@ -79,6 +79,11 @@ public class RulesPlugin extends AbstractHobsonPlugin {
     public void onRefresh() {}
 
     @Override
+    protected TypedProperty[] createSupportedProperties() {
+        return null;
+    }
+
+    @Override
     public void onPluginConfigurationUpdate(PropertyContainer config) {}
 
     @Override
