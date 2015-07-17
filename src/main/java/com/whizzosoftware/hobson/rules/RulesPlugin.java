@@ -16,6 +16,7 @@ import com.whizzosoftware.hobson.api.plugin.PluginStatus;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
+import com.whizzosoftware.hobson.api.property.TypedPropertyConstraint;
 import com.whizzosoftware.hobson.api.task.TaskProvider;
 import com.whizzosoftware.hobson.rules.jruleengine.JRETaskProvider;
 import org.slf4j.Logger;
@@ -52,8 +53,8 @@ public class RulesPlugin extends AbstractHobsonPlugin {
         taskProvider.setRulesFile(getDataFile("rules.json"));
 
         // publish condition classes
-        publishConditionClass(PropertyContainerClassContext.create(getContext(), CONDITION_CLASS_TURN_ON), "A device or sensor turns on", Collections.singletonList(new TypedProperty("device", "Device", "The device to monitor", TypedProperty.Type.DEVICE)));
-        publishConditionClass(PropertyContainerClassContext.create(getContext(), CONDITION_CLASS_TURN_OFF), "A device or sensor turns off", Collections.singletonList(new TypedProperty("device", "Device", "The device to monitor", TypedProperty.Type.DEVICE)));
+        publishConditionClass(PropertyContainerClassContext.create(getContext(), CONDITION_CLASS_TURN_ON), "A device or sensor turns on", Collections.singletonList(new TypedProperty("device", "Device", "The device to monitor", TypedProperty.Type.DEVICE, Collections.singletonMap(TypedPropertyConstraint.deviceVariable, "on"))));
+        publishConditionClass(PropertyContainerClassContext.create(getContext(), CONDITION_CLASS_TURN_OFF), "A device or sensor turns off", Collections.singletonList(new TypedProperty("device", "Device", "The device to monitor", TypedProperty.Type.DEVICE, Collections.singletonMap(TypedPropertyConstraint.deviceVariable, "on"))));
 
         // set the plugin status to running
         setStatus(PluginStatus.running());
