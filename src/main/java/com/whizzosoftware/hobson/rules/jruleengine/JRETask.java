@@ -95,7 +95,7 @@ public class JRETask extends HobsonTask {
         String conditionClassId = condition.getContainerClassContext().getContainerClassId();
         switch (conditionClassId) {
             case RulesPlugin.CONDITION_CLASS_TURN_ON:
-            case RulesPlugin.CONDITION_CLASS_TURN_OFF:
+            case RulesPlugin.CONDITION_CLASS_TURN_OFF: {
                 DeviceContext dctx = (DeviceContext)condition.getPropertyValue("device");
                 assumpList.add(new Assumption(ConditionConstants.EVENT_ID, "=", VariableUpdateNotificationEvent.ID));
                 assumpList.add(new Assumption(ConditionConstants.PLUGIN_ID, "=", dctx.getPluginId()));
@@ -103,6 +103,15 @@ public class JRETask extends HobsonTask {
                 assumpList.add(new Assumption("event.variableName", "=", VariableConstants.ON));
                 assumpList.add(new Assumption("event.variableValue", "=", RulesPlugin.CONDITION_CLASS_TURN_ON.equals(conditionClassId) ? "true" : "false"));
                 return assumpList;
+            }
+            case RulesPlugin.CONDITION_CLASS_TEMP_ABOVE: {
+                DeviceContext dctx = (DeviceContext)condition.getPropertyValue("device");
+                assumpList.add(new Assumption(ConditionConstants.EVENT_ID, "=", VariableUpdateNotificationEvent.ID));
+                assumpList.add(new Assumption(ConditionConstants.PLUGIN_ID, "=", dctx.getPluginId()));
+                assumpList.add(new Assumption("event.deviceId", "=", dctx.getDeviceId()));
+                assumpList.add(new Assumption("event.variableName", "=", VariableConstants.TEMP_F));
+                return assumpList;
+            }
             default:
                 throw new HobsonRuntimeException("Unable to recognize condition: " + condition.toString());
 

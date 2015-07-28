@@ -31,6 +31,8 @@ import static org.junit.Assert.assertEquals;
 import java.io.*;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 public class JRETaskProviderTest {
     @Test
@@ -49,9 +51,6 @@ public class JRETaskProviderTest {
             assertTrue(ruleFile.exists());
             JSONObject json = new JSONObject(new JSONTokener(new FileReader(ruleFile)));
             assertPrefix(json);
-
-//            assertTrue(json.has("synonyms"));
-//            assertSynonyms(json.getJSONArray("synonyms"));
 
             assertFalse(json.has("rules"));
         } finally {
@@ -89,9 +88,6 @@ public class JRETaskProviderTest {
             assertTrue(ruleFile.exists());
             JSONObject jobj = new JSONObject(new JSONTokener(new FileReader(ruleFile)));
             assertPrefix(jobj);
-
-//            assertTrue(jobj.has("synonyms"));
-//            assertSynonyms(jobj.getJSONArray("synonyms"));
 
             assertTrue(jobj.has("rules"));
 
@@ -214,22 +210,7 @@ public class JRETaskProviderTest {
 
     @Test
     public void testRuleFileWrite() throws Exception {
-        File rulesFile = File.createTempFile("hobson-rules", "json");
-        rulesFile.deleteOnExit();
-
-        BufferedWriter writer = new BufferedWriter(new FileWriter(rulesFile));
-        writer.write(
-            "{\n" +
-            "\t\"name\": \"Hobson Rules\",\n" +
-            "\t\"description\": \"Hobson Rules\",\n" +
-            "\t\"synonyms\": [\n" +
-            "\t],\n" +
-            "\t\"rules\": [\n" +
-            "\t]\n" +
-            "}"
-        );
-        writer.close();
-
+        File rulesFile = createEmptyRulesFile();
         PluginContext ctx = PluginContext.createLocal("plugin1");
         MockTaskManager taskManager = new MockTaskManager();
         JRETaskProvider engine = new JRETaskProvider(ctx);
@@ -275,8 +256,63 @@ public class JRETaskProviderTest {
         assertEquals(1, actions.length());
     }
 
+    @Test
+    public void testProcessEventForTemperatureOutOfRange() throws Exception {
+        File rulesFile = createEmptyRulesFile();
+        PluginContext ctx = PluginContext.createLocal("plugin1");
+        MockTaskManager taskManager = new MockTaskManager();
+        JRETaskProvider engine = new JRETaskProvider(ctx);
+        engine.setRulesFile(rulesFile);
+        engine.setTaskManager(taskManager);
+
+        PluginContext pctx = PluginContext.createLocal("plugin");
+
+        Map<String,Object> propValues = new HashMap<>();
+        propValues.put("device", DeviceContext.create(pctx, "device"));
+        propValues.put("tempF", "80");
+        engine.onCreateTask(
+                "My Task",
+                null,
+                new PropertyContainerSet(
+                        new PropertyContainer(
+                                PropertyContainerClassContext.create(pctx, RulesPlugin.CONDITION_CLASS_TEMP_ABOVE),
+                                propValues
+                        )
+                ),
+                new PropertyContainerSet("actionset1", null)
+        );
+
+        assertEquals(0, taskManager.getActionSetExecutions().size());
+
+        engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableUpdate(DeviceContext.create(pctx, "device"), VariableConstants.TEMP_F, 81.0)));
+        assertEquals(1, taskManager.getActionSetExecutions().size());
+        assertEquals("actionset1", taskManager.getActionSetExecutions().get(0));
+
+        engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableUpdate(DeviceContext.create(pctx, "device"), VariableConstants.TEMP_F, 79.0)));
+        assertEquals(1, taskManager.getActionSetExecutions().size());
+    }
+
     protected void assertPrefix(JSONObject json) throws JSONException {
         assertEquals("Hobson Rules", json.getString("name"));
         assertEquals("Hobson Rules", json.getString("description"));
+    }
+
+    protected File createEmptyRulesFile() throws IOException {
+        File rulesFile = File.createTempFile("hobson-rules", "json");
+        rulesFile.deleteOnExit();
+
+        BufferedWriter writer = new BufferedWriter(new FileWriter(rulesFile));
+        writer.write(
+                "{\n" +
+                        "\t\"name\": \"Hobson Rules\",\n" +
+                        "\t\"description\": \"Hobson Rules\",\n" +
+                        "\t\"synonyms\": [\n" +
+                        "\t],\n" +
+                        "\t\"rules\": [\n" +
+                        "\t]\n" +
+                        "}"
+        );
+        writer.close();
+        return rulesFile;
     }
 }

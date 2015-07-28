@@ -18,11 +18,14 @@ import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
 import com.whizzosoftware.hobson.api.property.TypedPropertyConstraint;
 import com.whizzosoftware.hobson.api.task.TaskProvider;
+import com.whizzosoftware.hobson.api.variable.VariableConstants;
 import com.whizzosoftware.hobson.rules.jruleengine.JRETaskProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * A plugin that provides event-based tasks using the JRuleEngine library.
@@ -34,6 +37,8 @@ public class RulesPlugin extends AbstractHobsonPlugin {
 
     public static final String CONDITION_CLASS_TURN_ON = "turnOn";
     public static final String CONDITION_CLASS_TURN_OFF = "turnOff";
+    public static final String CONDITION_CLASS_TEMP_ABOVE = "tempAbove";
+    public static final String CONDITION_CLASS_TEMP_BELOW = "tempBelow";
 
     private JRETaskProvider taskProvider;
 
@@ -53,8 +58,19 @@ public class RulesPlugin extends AbstractHobsonPlugin {
         taskProvider.setRulesFile(getDataFile("rules.json"));
 
         // publish condition classes
-        publishConditionClass(PropertyContainerClassContext.create(getContext(), CONDITION_CLASS_TURN_ON), "A device or sensor turns on", Collections.singletonList(new TypedProperty("device", "Device", "The device to monitor", TypedProperty.Type.DEVICE, Collections.singletonMap(TypedPropertyConstraint.deviceVariable, "on"))));
-        publishConditionClass(PropertyContainerClassContext.create(getContext(), CONDITION_CLASS_TURN_OFF), "A device or sensor turns off", Collections.singletonList(new TypedProperty("device", "Device", "The device to monitor", TypedProperty.Type.DEVICE, Collections.singletonMap(TypedPropertyConstraint.deviceVariable, "on"))));
+        publishConditionClass(PropertyContainerClassContext.create(getContext(), CONDITION_CLASS_TURN_ON), "A device turns on", Collections.singletonList(new TypedProperty("device", "Device", "The device to monitor", TypedProperty.Type.DEVICE, Collections.singletonMap(TypedPropertyConstraint.deviceVariable, VariableConstants.ON))));
+
+        publishConditionClass(PropertyContainerClassContext.create(getContext(), CONDITION_CLASS_TURN_OFF), "A device turns off", Collections.singletonList(new TypedProperty("device", "Device", "The device to monitor", TypedProperty.Type.DEVICE, Collections.singletonMap(TypedPropertyConstraint.deviceVariable, VariableConstants.ON))));
+
+        List<TypedProperty> props = new ArrayList<>();
+        props.add(new TypedProperty("device", "Device", "The device reporting the temperature", TypedProperty.Type.DEVICE, Collections.singletonMap(TypedPropertyConstraint.deviceVariable, VariableConstants.TEMP_F)));
+        props.add(new TypedProperty("tempF", "Temperature", "The temperature in Fahrenheit", TypedProperty.Type.NUMBER));
+        publishConditionClass(PropertyContainerClassContext.create(getContext(), CONDITION_CLASS_TEMP_ABOVE), "A device temperature rises above", props);
+
+        props = new ArrayList<>();
+        props.add(new TypedProperty("device", "Device", "The device reporting the temperature", TypedProperty.Type.DEVICE, Collections.singletonMap(TypedPropertyConstraint.deviceVariable, VariableConstants.TEMP_F)));
+        props.add(new TypedProperty("tempF", "Temperature", "The temperature in Fahrenheit", TypedProperty.Type.NUMBER));
+        publishConditionClass(PropertyContainerClassContext.create(getContext(), CONDITION_CLASS_TEMP_BELOW), "A device temperature drops below", props);
 
         // set the plugin status to running
         setStatus(PluginStatus.running());

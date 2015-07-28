@@ -23,7 +23,14 @@ import java.util.List;
 import java.util.Map;
 
 public class TaskConditionFactory {
-
+    /**
+     * Creates a condition PropertyContainer based on a list of Assumptions.
+     *
+     * @param ctx the plugin context
+     * @param assumps the list of assumptions
+     *
+     * @return the PropertyContainer (or null if the assumption's event ID is not supported)
+     */
     public static PropertyContainer createCondition(PluginContext ctx, List<Assumption> assumps) {
         // build an assumption map for quick analysis
         Map<String,Assumption> assumpMap = new HashMap<>();

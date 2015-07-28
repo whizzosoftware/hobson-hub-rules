@@ -17,6 +17,7 @@ import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
 import com.whizzosoftware.hobson.api.property.PropertyContainerSet;
 import com.whizzosoftware.hobson.api.task.*;
+import com.whizzosoftware.hobson.api.variable.VariableConstants;
 import com.whizzosoftware.hobson.api.variable.VariableUpdate;
 import com.whizzosoftware.hobson.rules.RulesPlugin;
 import com.whizzosoftware.hobson.rules.condition.*;
@@ -191,8 +192,9 @@ public class JRETaskProvider implements TaskProvider {
             writeRuleFile();
 
             // re-load rules
-            loadRules(new FileInputStream(rulesFile));
-
+            if (rulesFile != null) {
+                loadRules(new FileInputStream(rulesFile));
+            }
         } catch (Exception e) {
             throw new TaskException("Error adding task", e);
         }
@@ -242,47 +244,51 @@ public class JRETaskProvider implements TaskProvider {
     }
 
     synchronized private void writeRuleFile() throws Exception {
-        logger.trace("Writing rules file");
+        if (rulesFile != null) {
+            logger.trace("Writing rules file");
 
-        FileWriter writer = new FileWriter(rulesFile);
-        JSONObject rootJson = new JSONObject();
-        rootJson.put("name", "Hobson Rules");
-        rootJson.put("description", "Hobson Rules");
+            FileWriter writer = new FileWriter(rulesFile);
+            JSONObject rootJson = new JSONObject();
+            rootJson.put("name", "Hobson Rules");
+            rootJson.put("description", "Hobson Rules");
 
-        if (tasks.size() > 0) {
-            JSONArray rulesArray = new JSONArray();
-            for (HobsonTask task : tasks.values()) {
-                JSONObject rule = new JSONObject();
-                rule.put("name", task.getContext().getTaskId());
-                rule.put("description", task.getName());
+            if (tasks.size() > 0) {
+                JSONArray rulesArray = new JSONArray();
+                for (HobsonTask task : tasks.values()) {
+                    JSONObject rule = new JSONObject();
+                    rule.put("name", task.getContext().getTaskId());
+                    rule.put("description", task.getName());
 
-                JSONArray ruleAssumps = new JSONArray();
-                if (task.getConditionSet().hasPrimaryProperty()) {
-                    createAssumptionJson(task.getConditionSet().getPrimaryProperty(), ruleAssumps);
-                }
-                if (task.getConditionSet().hasProperties()) {
-                    for (PropertyContainer condition : task.getConditionSet().getProperties()) {
-                        createAssumptionJson(condition, ruleAssumps);
+                    JSONArray ruleAssumps = new JSONArray();
+                    if (task.getConditionSet().hasPrimaryProperty()) {
+                        createAssumptionJson(task.getConditionSet().getPrimaryProperty(), ruleAssumps);
                     }
-                }
-                rule.put("assumptions", ruleAssumps);
+                    if (task.getConditionSet().hasProperties()) {
+                        for (PropertyContainer condition : task.getConditionSet().getProperties()) {
+                            createAssumptionJson(condition, ruleAssumps);
+                        }
+                    }
+                    rule.put("assumptions", ruleAssumps);
 
-                JSONArray actions = new JSONArray();
-                if (task.getActionSet().hasId()) {
-                    JSONObject action = new JSONObject();
-                    action.put("method", ConditionConstants.EXECUTE_ACTIONSET);
-                    action.put("arg1", task.getActionSet().getId());
-                    actions.put(action);
-                }
-                rule.put("actions", actions);
+                    JSONArray actions = new JSONArray();
+                    if (task.getActionSet().hasId()) {
+                        JSONObject action = new JSONObject();
+                        action.put("method", ConditionConstants.EXECUTE_ACTIONSET);
+                        action.put("arg1", task.getActionSet().getId());
+                        actions.put(action);
+                    }
+                    rule.put("actions", actions);
 
-                rulesArray.put(rule);
+                    rulesArray.put(rule);
+                }
+                rootJson.put("rules", rulesArray);
             }
-            rootJson.put("rules", rulesArray);
-        }
 
-        writer.write(rootJson.toString());
-        writer.close();
+            writer.write(rootJson.toString());
+            writer.close();
+        } else {
+            logger.warn("No rules file defined; unable to write changes");
+        }
     }
 
     protected JSONObject createJSONCondition(String leftTerm, String comparator, String rightTerm) {
@@ -300,8 +306,15 @@ public class JRETaskProvider implements TaskProvider {
             DeviceContext ctx = (DeviceContext)condition.getPropertyValue("device");
             a.put(createJSONCondition(ConditionConstants.PLUGIN_ID, "=", ctx.getPluginId()));
             a.put(createJSONCondition(ConditionConstants.DEVICE_ID, "=", ctx.getDeviceId()));
-            a.put(createJSONCondition(ConditionConstants.VARIABLE_NAME, "=", "on"));
+            a.put(createJSONCondition(ConditionConstants.VARIABLE_NAME, "=", VariableConstants.ON));
             a.put(createJSONCondition(ConditionConstants.VARIABLE_VALUE, "=", (tccc.getContainerClassId().equals(RulesPlugin.CONDITION_CLASS_TURN_ON)) ? "true" : "false"));
+        } else if (tccc.getContainerClassId().equals(RulesPlugin.CONDITION_CLASS_TEMP_ABOVE)) {
+            a.put(createJSONCondition(ConditionConstants.EVENT_ID, "=", VariableUpdateNotificationEvent.ID));
+            DeviceContext ctx = (DeviceContext)condition.getPropertyValue("device");
+            a.put(createJSONCondition(ConditionConstants.PLUGIN_ID, "=", ctx.getPluginId()));
+            a.put(createJSONCondition(ConditionConstants.DEVICE_ID, "=", ctx.getDeviceId()));
+            a.put(createJSONCondition(ConditionConstants.VARIABLE_NAME, "=", VariableConstants.TEMP_F));
+            a.put(createJSONCondition(ConditionConstants.VARIABLE_VALUE, ">=", condition.getStringPropertyValue("tempF")));
         }
     }
 }
