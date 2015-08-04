@@ -9,36 +9,6 @@
     <description>Provides the ability to create event-based tasks.</description>
     <dependencies>
         <dependency>
-            <groupId>org.apache.felix</groupId>
-            <artifactId>org.osgi.core</artifactId>
-            <version>1.4.0</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.felix</groupId>
-            <artifactId>org.osgi.compendium</artifactId>
-            <version>1.4.0</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.felix</groupId>
-            <artifactId>org.apache.felix.dependencymanager</artifactId>
-            <version>3.1.0</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.felix</groupId>
-            <artifactId>org.apache.felix.gogo.runtime</artifactId>
-            <version>0.10.0</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.felix</groupId>
-            <artifactId>org.apache.felix.webconsole</artifactId>
-            <version>4.2.2</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>1.7.6</version>
@@ -48,6 +18,12 @@
             <groupId>org.apache.servicemix.bundles</groupId>
             <artifactId>org.apache.servicemix.bundles.json</artifactId>
             <version>20140107_1</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.1</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -123,7 +99,7 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Import-Package>org.osgi.framework,org.osgi.service.event,org.apache.felix.dm.*,javax.servlet.*,org.slf4j,org.json.*,com.whizzosoftware.hobson.api.*;version="[0.5.0,0.6)</Import-Package>
+                        <Import-Package>org.osgi.framework,org.osgi.service.event,org.apache.felix.dm.*,javax.servlet.*,org.slf4j,org.json.*,org.apache.commons.lang3.*,com.whizzosoftware.hobson.api.*;version="[0.5.0,0.6)</Import-Package>
                         <Bundle-Activator>com.whizzosoftware.hobson.api.osgi.activator.HobsonBundleActivator</Bundle-Activator>
                         <Embed-Dependency>jruleengine;scope=compile|runtime,jsr94;scope=compile|runtime</Embed-Dependency>
                         <Provide-Capability>hobson.plugin=com.whizzosoftware.hobson.rules.RulesPlugin</Provide-Capability>

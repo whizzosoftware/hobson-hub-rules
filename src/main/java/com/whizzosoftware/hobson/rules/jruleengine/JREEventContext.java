@@ -19,8 +19,7 @@ import com.whizzosoftware.hobson.api.variable.VariableUpdate;
  */
 public class JREEventContext {
     private String eventId;
-    private String pluginId;
-    private String deviceId;
+    private String deviceCtx;
     private String variableName;
     private Object variableValue;
     private String entityId;
@@ -28,8 +27,7 @@ public class JREEventContext {
 
     public JREEventContext(VariableUpdate update) {
         this.eventId = VariableUpdateNotificationEvent.ID;
-        this.pluginId = update.getPluginId();
-        this.deviceId = update.getDeviceId();
+        this.deviceCtx = update.getDeviceContext().toString();
         this.variableName = update.getName();
         this.variableValue = update.getValue();
     }
@@ -44,12 +42,8 @@ public class JREEventContext {
         return eventId;
     }
 
-    public String pluginId() {
-        return pluginId;
-    }
-
-    public String deviceId() {
-        return deviceId;
+    public String deviceCtx() {
+        return deviceCtx;
     }
 
     public String variableName() {

@@ -25,6 +25,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 
 public class JRETaskTest {
@@ -48,8 +49,7 @@ public class JRETaskTest {
         // create assumptions
         ArrayList assumps = new ArrayList();
         assumps.add(new Assumption(ConditionConstants.EVENT_ID, "=", VariableUpdateNotificationEvent.ID));
-        assumps.add(new Assumption(ConditionConstants.PLUGIN_ID, "=", "com.whizzosoftware.hobson.server-zwave"));
-        assumps.add(new Assumption(ConditionConstants.DEVICE_ID, "=", "zwave-32"));
+        assumps.add(new Assumption(ConditionConstants.DEVICE_CTX, "containsatleastone", "[local:local:com.whizzosoftware.hobson.server-zwave:zwave-32]"));
         assumps.add(new Assumption(ConditionConstants.VARIABLE_NAME, "=", "on"));
         assumps.add(new Assumption(ConditionConstants.VARIABLE_VALUE, "=", "false"));
 
@@ -67,9 +67,12 @@ public class JRETaskTest {
 
         assertTrue(task.getConditionSet().hasPrimaryProperty());
         assertEquals(RulesPlugin.CONDITION_CLASS_TURN_OFF, task.getConditionSet().getPrimaryProperty().getContainerClassContext().getContainerClassId());
-        assertNotNull(task.getConditionSet().getPrimaryProperty().getPropertyValue("device"));
-        assertEquals("com.whizzosoftware.hobson.server-zwave", ((DeviceContext) task.getConditionSet().getPrimaryProperty().getPropertyValue("device")).getPluginId());
-        assertEquals("zwave-32", ((DeviceContext) task.getConditionSet().getPrimaryProperty().getPropertyValue("device")).getDeviceId());
+        Collection<DeviceContext> ctxs = (Collection<DeviceContext>)task.getConditionSet().getPrimaryProperty().getPropertyValue("devices");
+        assertNotNull(ctxs);
+        assertEquals(1, ctxs.size());
+        DeviceContext ctx = ctxs.iterator().next();
+        assertEquals("com.whizzosoftware.hobson.server-zwave", ctx.getPluginId());
+        assertEquals("zwave-32", ctx.getDeviceId());
     }
 
     @Test
@@ -80,9 +83,8 @@ public class JRETaskTest {
         // create assumptions
         ArrayList<Assumption> assumps = new ArrayList<>();
         assumps.add(new Assumption(ConditionConstants.EVENT_ID, "=", VariableUpdateNotificationEvent.ID));
-        assumps.add(new Assumption(ConditionConstants.PLUGIN_ID, "=", "com.whizzosoftware.hobson.server-zwave"));
-        assumps.add(new Assumption(ConditionConstants.DEVICE_ID, "=", "zwave-32"));
         assumps.add(new Assumption(ConditionConstants.VARIABLE_NAME, "=", "on"));
+        assumps.add(new Assumption(ConditionConstants.DEVICE_CTX, "containsatleastone", "[local:local:com.whizzosoftware.hobson.server-zwave:zwave-32]"));
         assumps.add(new Assumption(ConditionConstants.VARIABLE_VALUE, "=", "true"));
 
         // create actions
@@ -99,9 +101,12 @@ public class JRETaskTest {
 
         assertTrue(task.getConditionSet().hasPrimaryProperty());
         assertEquals(RulesPlugin.CONDITION_CLASS_TURN_ON, task.getConditionSet().getPrimaryProperty().getContainerClassContext().getContainerClassId());
-        assertNotNull(task.getConditionSet().getPrimaryProperty().getPropertyValue("device"));
-        assertEquals("com.whizzosoftware.hobson.server-zwave", ((DeviceContext) task.getConditionSet().getPrimaryProperty().getPropertyValue("device")).getPluginId());
-        assertEquals("zwave-32", ((DeviceContext) task.getConditionSet().getPrimaryProperty().getPropertyValue("device")).getDeviceId());
+        Collection<DeviceContext> ctxs = (Collection<DeviceContext>)task.getConditionSet().getPrimaryProperty().getPropertyValue("devices");
+        assertNotNull(ctxs);
+        assertEquals(1, ctxs.size());
+        DeviceContext ctx = ctxs.iterator().next();
+        assertEquals("com.whizzosoftware.hobson.server-zwave", ctx.getPluginId());
+        assertEquals("zwave-32", ctx.getDeviceId());
         assertTrue(task.getActionSet().hasId());
         assertEquals("actionset1", task.getActionSet().getId());
     }
@@ -118,7 +123,7 @@ public class JRETaskTest {
             new PropertyContainerSet(
                 new PropertyContainer(
                     PropertyContainerClassContext.create(pctx, RulesPlugin.CONDITION_CLASS_TURN_OFF),
-                    Collections.singletonMap("device", (Object) DeviceContext.createLocal("com.whizzosoftware.hobson.hobson-hub-zwave", "zwave-32"))
+                    Collections.singletonMap("devices", (Object)Collections.singletonList(DeviceContext.createLocal("com.whizzosoftware.hobson.hobson-hub-zwave", "zwave-32")))
                 )
             ),
             new PropertyContainerSet("actionset1", null)
@@ -130,9 +135,12 @@ public class JRETaskTest {
 
         assertTrue(task.getConditionSet().hasPrimaryProperty());
         assertEquals(RulesPlugin.CONDITION_CLASS_TURN_OFF, task.getConditionSet().getPrimaryProperty().getContainerClassContext().getContainerClassId());
-        assertNotNull(task.getConditionSet().getPrimaryProperty().getPropertyValue("device"));
-        assertEquals("com.whizzosoftware.hobson.hobson-hub-zwave", ((DeviceContext) task.getConditionSet().getPrimaryProperty().getPropertyValue("device")).getPluginId());
-        assertEquals("zwave-32", ((DeviceContext) task.getConditionSet().getPrimaryProperty().getPropertyValue("device")).getDeviceId());
+        Collection<DeviceContext> ctxs = (Collection<DeviceContext>)task.getConditionSet().getPrimaryProperty().getPropertyValue("devices");
+        assertNotNull(ctxs);
+        assertEquals(1, ctxs.size());
+        DeviceContext ctx = ctxs.iterator().next();
+        assertEquals("com.whizzosoftware.hobson.hobson-hub-zwave", ctx.getPluginId());
+        assertEquals("zwave-32", ctx.getDeviceId());
 
         assertEquals("actionset1", task.getActionSet().getId());
     }
@@ -149,7 +157,7 @@ public class JRETaskTest {
             new PropertyContainerSet(
                 new PropertyContainer(
                     PropertyContainerClassContext.create(pctx, RulesPlugin.CONDITION_CLASS_TURN_ON),
-                    Collections.singletonMap("device", (Object)DeviceContext.createLocal("com.whizzosoftware.hobson.hobson-hub-zwave", "zwave-32"))
+                    Collections.singletonMap("devices", (Object)Collections.singletonList(DeviceContext.createLocal("com.whizzosoftware.hobson.hobson-hub-zwave", "zwave-32")))
                 )
             ),
             new PropertyContainerSet("actionset2", null)
@@ -161,9 +169,13 @@ public class JRETaskTest {
 
         assertTrue(task.getConditionSet().hasPrimaryProperty());
         assertEquals(RulesPlugin.CONDITION_CLASS_TURN_ON, task.getConditionSet().getPrimaryProperty().getContainerClassContext().getContainerClassId());
-        assertNotNull(task.getConditionSet().getPrimaryProperty().getPropertyValue("device"));
-        assertEquals("com.whizzosoftware.hobson.hobson-hub-zwave", ((DeviceContext) task.getConditionSet().getPrimaryProperty().getPropertyValue("device")).getPluginId());
-        assertEquals("zwave-32", ((DeviceContext) task.getConditionSet().getPrimaryProperty().getPropertyValue("device")).getDeviceId());
+        assertNotNull(task.getConditionSet().getPrimaryProperty().getPropertyValue("devices"));
+
+        Collection<DeviceContext> ctxs = (Collection<DeviceContext>)task.getConditionSet().getPrimaryProperty().getPropertyValue("devices");
+        assertEquals(1, ctxs.size());
+        DeviceContext ctx = ctxs.iterator().next();
+        assertEquals("com.whizzosoftware.hobson.hobson-hub-zwave", ctx.getPluginId());
+        assertEquals("zwave-32", ctx.getDeviceId());
 
         assertEquals("actionset2", task.getActionSet().getId());
     }

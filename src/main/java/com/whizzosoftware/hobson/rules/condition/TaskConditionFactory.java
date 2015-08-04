@@ -15,6 +15,7 @@ import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
 import com.whizzosoftware.hobson.api.variable.VariableConstants;
 import com.whizzosoftware.hobson.rules.RulesPlugin;
+import org.apache.commons.lang3.StringUtils;
 import org.jruleengine.rule.Assumption;
 
 import java.util.Collections;
@@ -62,24 +63,16 @@ public class TaskConditionFactory {
                         return new PropertyContainer(
                             PropertyContainerClassContext.create(pctx, RulesPlugin.CONDITION_CLASS_TURN_OFF),
                             Collections.singletonMap(
-                                "device",
-                                (Object) DeviceContext.create(
-                                    pctx.getHubContext(),
-                                    assumpMap.get(ConditionConstants.PLUGIN_ID).getRightTerm(),
-                                    assumpMap.get(ConditionConstants.DEVICE_ID).getRightTerm()
-                                )
+                                "devices",
+                                (Object) DeviceContext.createCollection(removeArrayWrapper(assumpMap.get(ConditionConstants.DEVICE_CTX).getRightTerm()))
                             )
                         );
                     } else if ("true".equalsIgnoreCase(varValue.trim())) {
                         return new PropertyContainer(
                             PropertyContainerClassContext.create(pctx, RulesPlugin.CONDITION_CLASS_TURN_ON),
                             Collections.singletonMap(
-                                "device",
-                                (Object) DeviceContext.create(
-                                    pctx.getHubContext(),
-                                    assumpMap.get(ConditionConstants.PLUGIN_ID).getRightTerm(),
-                                    assumpMap.get(ConditionConstants.DEVICE_ID).getRightTerm()
-                                )
+                                "devices",
+                                (Object) DeviceContext.createCollection(removeArrayWrapper(assumpMap.get(ConditionConstants.DEVICE_CTX).getRightTerm()))
                             )
                         );
                     } else {
@@ -91,5 +84,9 @@ public class TaskConditionFactory {
         }
 
         return null;
+    }
+
+    static private String removeArrayWrapper(String s) {
+        return StringUtils.removeEnd(StringUtils.removeStart(s, "["), "]");
     }
 }

@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This class encapsulates an TaskManager so JRuleEngine use it to execute actions with the appropriate
+ * This class encapsulates a TaskManager so JRuleEngine can use it to execute actions within the appropriate
  * context.
  *
  * @author Dan Noguerol

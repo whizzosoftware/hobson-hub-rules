@@ -29,10 +29,7 @@ import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 
 import java.io.*;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class JRETaskProviderTest {
     @Test
@@ -74,14 +71,14 @@ public class JRETaskProviderTest {
             provider.setRulesFile(ruleFile);
 
             provider.onCreateTask(
-                "My Task",
+                    "My Task",
                     null, new PropertyContainerSet(
-                    new PropertyContainer(
-                        PropertyContainerClassContext.create(pctx, RulesPlugin.CONDITION_CLASS_TURN_OFF),
-                        Collections.singletonMap("device", (Object) DeviceContext.createLocal("com.whizzosoftware.hobson.hobson-hub-zwave", "zwave-32"))
-                    )
-                ),
-                new PropertyContainerSet("actionset1", null)
+                            new PropertyContainer(
+                                PropertyContainerClassContext.create(pctx, RulesPlugin.CONDITION_CLASS_TURN_OFF),
+                                Collections.singletonMap("devices", (Object)Collections.singletonList(DeviceContext.createLocal("com.whizzosoftware.hobson.hobson-hub-zwave", "zwave-32")))
+                            )
+                    ),
+                    new PropertyContainerSet("actionset1", null)
             );
 
             // make sure the provider updated the rule file
@@ -100,24 +97,20 @@ public class JRETaskProviderTest {
 
             assertTrue(rule.has("assumptions"));
             JSONArray conditions = rule.getJSONArray("assumptions");
-            assertEquals(5, conditions.length());
+            assertEquals(4, conditions.length());
             JSONObject condition = conditions.getJSONObject(0);
             assertEquals(ConditionConstants.EVENT_ID, condition.getString("leftTerm"));
             assertEquals("=", condition.getString("op"));
             assertEquals(VariableUpdateNotificationEvent.ID, condition.getString("rightTerm"));
             condition = conditions.getJSONObject(1);
-            assertEquals(ConditionConstants.PLUGIN_ID, condition.getString("leftTerm"));
-            assertEquals("=", condition.getString("op"));
-            assertEquals("com.whizzosoftware.hobson.hobson-hub-zwave", condition.getString("rightTerm"));
+            assertEquals(ConditionConstants.DEVICE_CTX, condition.getString("leftTerm"));
+            assertEquals("containsatleastone", condition.getString("op"));
+            assertEquals("[local:local:com.whizzosoftware.hobson.hobson-hub-zwave:zwave-32]", condition.getString("rightTerm"));
             condition = conditions.getJSONObject(2);
-            assertEquals(ConditionConstants.DEVICE_ID, condition.getString("leftTerm"));
-            assertEquals("=", condition.getString("op"));
-            assertEquals("zwave-32", condition.getString("rightTerm"));
-            condition = conditions.getJSONObject(3);
             assertEquals(ConditionConstants.VARIABLE_NAME, condition.getString("leftTerm"));
             assertEquals("=", condition.getString("op"));
             assertEquals("on", condition.getString("rightTerm"));
-            condition = conditions.getJSONObject(4);
+            condition = conditions.getJSONObject(3);
             assertEquals(ConditionConstants.VARIABLE_VALUE, condition.getString("leftTerm"));
             assertEquals("=", condition.getString("op"));
             assertEquals("false", condition.getString("rightTerm"));
@@ -140,50 +133,35 @@ public class JRETaskProviderTest {
         String rulesJson = "{\n" +
             "\t\"name\": \"Hobson Rules\",\n" +
             "\t\"description\": \"Hobson Rules\",\n" +
-            "\t\"synonyms\": [\n" +
-            "\t\t{\n" +
-            "\t\t\t\"name\": \"event\", \n" +
-            "\t\t\t\"class\": \"com.whizzosoftware.hobson.rules.jruleengine.JREEventContext\"\n" +
-            "\t\t},\n" +
-            "\t\t{\n" +
-            "\t\t\t\"name\": \"taskManager\", \n" +
-            "\t\t\t\"class\": \"com.whizzosoftware.hobson.rules.jruleengine.JRETaskContext\"\n" +
-            "\t\t}\n" +
-            "\t],\n" +
             "\t\"rules\": [\n" +
             "\t\t{\n" +
             "\t\t\t\"name\": \"ruleid1\", \n" +
             "\t\t\t\"description\": \"test rule\",\n" +
             "\t\t\t\"assumptions\": [\n" +
             "\t\t\t\t{\n" +
-            "\t\t\t\t\t\"leftTerm\": \"event.eventId\",\n" +
+            "\t\t\t\t\t\"leftTerm\": \"com.whizzosoftware.hobson.rules.jruleengine.JREEventContext.eventId\",\n" +
             "\t\t\t\t\t\"op\": \"=\",\n" +
             "\t\t\t\t\t\"rightTerm\": \"" + VariableUpdateNotificationEvent.ID + "\"\n" +
             "\t\t\t\t},\n" +
             "\t\t\t\t{\n" +
-            "\t\t\t\t\t\"leftTerm\": \"event.pluginId\",\n" +
+            "\t\t\t\t\t\"leftTerm\": \"com.whizzosoftware.hobson.rules.jruleengine.JREEventContext.deviceCtx\",\n" +
             "\t\t\t\t\t\"op\": \"=\",\n" +
-            "\t\t\t\t\t\"rightTerm\": \"comwhizzosoftwarehobsonserver-zwave\"\n" +
+            "\t\t\t\t\t\"rightTerm\": \"local:local:comwhizzosoftwarehobsonserver-zwave:zwave-32\"\n" +
             "\t\t\t\t},\n" +
             "\t\t\t\t{\n" +
-            "\t\t\t\t\t\"leftTerm\": \"event.deviceId\",\n" +
-            "\t\t\t\t\t\"op\": \"=\",\n" +
-            "\t\t\t\t\t\"rightTerm\": \"zwave-32\"\n" +
-            "\t\t\t\t},\n" +
-            "\t\t\t\t{\n" +
-            "\t\t\t\t\t\"leftTerm\": \"event.variableName\",\n" +
+            "\t\t\t\t\t\"leftTerm\": \"com.whizzosoftware.hobson.rules.jruleengine.JREEventContext.variableName\",\n" +
             "\t\t\t\t\t\"op\": \"=\",\n" +
             "\t\t\t\t\t\"rightTerm\": \"on\"\n" +
             "\t\t\t\t},\n" +
             "\t\t\t\t{\n" +
-            "\t\t\t\t\t\"leftTerm\": \"event.variableValue\",\n" +
+            "\t\t\t\t\t\"leftTerm\": \"com.whizzosoftware.hobson.rules.jruleengine.JREEventContext.variableValue\",\n" +
             "\t\t\t\t\t\"op\": \"=\",\n" +
             "\t\t\t\t\t\"rightTerm\": \"true\"\n" +
             "\t\t\t\t}\n" +
             "\t\t\t],\n" +
             "\t\t\t\"actions\": [\n" +
             "\t\t\t\t{\n" +
-            "\t\t\t\t\t\"method\": \"taskManager.executeActionSet\",\n" +
+            "\t\t\t\t\t\"method\": \"com.whizzosoftware.hobson.rules.jruleengine.JRETaskContext.executeActionSet\",\n" +
             "\t\t\t\t\t\"arg1\": \"actionset1\",\n" +
             "\t\t\t\t}\n" +
             "\t\t\t]\n" +
@@ -192,7 +170,7 @@ public class JRETaskProviderTest {
             "}";
         engine.loadRules(new ByteArrayInputStream(rulesJson.getBytes()));
 
-        Collection<HobsonTask> tasks = engine.getTasks();
+        Collection<JRETask> tasks = engine.getTasks();
         Assert.assertEquals(1, tasks.size());
         HobsonTask task = tasks.iterator().next();
         Assert.assertNotNull("ruleid1", task.getContext().getTaskId());
@@ -222,7 +200,7 @@ public class JRETaskProviderTest {
                 null, new PropertyContainerSet(
                 new PropertyContainer(
                     PropertyContainerClassContext.create(ctx, RulesPlugin.CONDITION_CLASS_TURN_ON),
-                    Collections.singletonMap("device", (Object)DeviceContext.createLocal("plugin2", "device1"))
+                    Collections.singletonMap("devices", (Object)Collections.singletonList(DeviceContext.createLocal("plugin2", "device1")))
                 )
             ),
             new PropertyContainerSet(
@@ -232,6 +210,8 @@ public class JRETaskProviderTest {
         );
 
         JSONObject json = new JSONObject(new JSONTokener(new FileInputStream(rulesFile)));
+
+        System.out.println(json.toString());
 
         // test prefix
         assertPrefix(json);
@@ -247,7 +227,7 @@ public class JRETaskProviderTest {
         // test rule assumptions
         assertTrue(rule.has("assumptions"));
         JSONArray assumptions = rule.getJSONArray("assumptions");
-        assertEquals(5, assumptions.length());
+        assertEquals(4, assumptions.length());
         assertEquals(ConditionConstants.EVENT_ID, assumptions.getJSONObject(0).getString("leftTerm"));
 
         // test rule actions
@@ -268,7 +248,10 @@ public class JRETaskProviderTest {
         PluginContext pctx = PluginContext.createLocal("plugin");
 
         Map<String,Object> propValues = new HashMap<>();
-        propValues.put("device", DeviceContext.create(pctx, "device"));
+        ArrayList<DeviceContext> ctxs = new ArrayList<>();
+        ctxs.add(DeviceContext.create(pctx, "device1"));
+        ctxs.add(DeviceContext.create(pctx, "device2"));
+        propValues.put("devices", ctxs);
         propValues.put("tempF", "80");
         engine.onCreateTask(
                 "My Task",
@@ -284,12 +267,19 @@ public class JRETaskProviderTest {
 
         assertEquals(0, taskManager.getActionSetExecutions().size());
 
-        engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableUpdate(DeviceContext.create(pctx, "device"), VariableConstants.TEMP_F, 81.0)));
+        engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableUpdate(DeviceContext.create(pctx, "device1"), VariableConstants.TEMP_F, 81.0)));
+
         assertEquals(1, taskManager.getActionSetExecutions().size());
         assertEquals("actionset1", taskManager.getActionSetExecutions().get(0));
 
-        engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableUpdate(DeviceContext.create(pctx, "device"), VariableConstants.TEMP_F, 79.0)));
+        engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableUpdate(DeviceContext.create(pctx, "device1"), VariableConstants.TEMP_F, 79.0)));
         assertEquals(1, taskManager.getActionSetExecutions().size());
+
+        engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableUpdate(DeviceContext.create(pctx, "device3"), VariableConstants.TEMP_F, 81.0)));
+        assertEquals(1, taskManager.getActionSetExecutions().size());
+
+        engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableUpdate(DeviceContext.create(pctx, "device2"), VariableConstants.TEMP_F, 81.0)));
+        assertEquals(2, taskManager.getActionSetExecutions().size());
     }
 
     protected void assertPrefix(JSONObject json) throws JSONException {

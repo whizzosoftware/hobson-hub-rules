@@ -49,7 +49,7 @@ public class JRETaskProvider implements TaskProvider {
     private RuleServiceProvider provider;
     private RuleAdministrator administrator;
     private RuleRuntime runtime;
-    private final Map<String,HobsonTask> tasks = new HashMap<>();
+    private final Map<String,JRETask> tasks = new HashMap<>();
 
     /**
      * Constructor.
@@ -73,7 +73,7 @@ public class JRETaskProvider implements TaskProvider {
         this.taskManager = taskManager;
     }
 
-    protected Collection<HobsonTask> getTasks() {
+    protected Collection<JRETask> getTasks() {
         return tasks.values();
     }
 
@@ -254,32 +254,8 @@ public class JRETaskProvider implements TaskProvider {
 
             if (tasks.size() > 0) {
                 JSONArray rulesArray = new JSONArray();
-                for (HobsonTask task : tasks.values()) {
-                    JSONObject rule = new JSONObject();
-                    rule.put("name", task.getContext().getTaskId());
-                    rule.put("description", task.getName());
-
-                    JSONArray ruleAssumps = new JSONArray();
-                    if (task.getConditionSet().hasPrimaryProperty()) {
-                        createAssumptionJson(task.getConditionSet().getPrimaryProperty(), ruleAssumps);
-                    }
-                    if (task.getConditionSet().hasProperties()) {
-                        for (PropertyContainer condition : task.getConditionSet().getProperties()) {
-                            createAssumptionJson(condition, ruleAssumps);
-                        }
-                    }
-                    rule.put("assumptions", ruleAssumps);
-
-                    JSONArray actions = new JSONArray();
-                    if (task.getActionSet().hasId()) {
-                        JSONObject action = new JSONObject();
-                        action.put("method", ConditionConstants.EXECUTE_ACTIONSET);
-                        action.put("arg1", task.getActionSet().getId());
-                        actions.put(action);
-                    }
-                    rule.put("actions", actions);
-
-                    rulesArray.put(rule);
+                for (JRETask task : tasks.values()) {
+                    rulesArray.put(task.toJSON());
                 }
                 rootJson.put("rules", rulesArray);
             }
@@ -288,33 +264,6 @@ public class JRETaskProvider implements TaskProvider {
             writer.close();
         } else {
             logger.warn("No rules file defined; unable to write changes");
-        }
-    }
-
-    protected JSONObject createJSONCondition(String leftTerm, String comparator, String rightTerm) {
-        JSONObject json = new JSONObject();
-        json.put("leftTerm", leftTerm);
-        json.put("op", comparator);
-        json.put("rightTerm", rightTerm);
-        return json;
-    }
-
-    protected void createAssumptionJson(PropertyContainer condition, JSONArray a) {
-        PropertyContainerClassContext tccc = condition.getContainerClassContext();
-        if (tccc.getContainerClassId().equals(RulesPlugin.CONDITION_CLASS_TURN_ON) || tccc.getContainerClassId().equals(RulesPlugin.CONDITION_CLASS_TURN_OFF)) {
-            a.put(createJSONCondition(ConditionConstants.EVENT_ID, "=", VariableUpdateNotificationEvent.ID));
-            DeviceContext ctx = (DeviceContext)condition.getPropertyValue("device");
-            a.put(createJSONCondition(ConditionConstants.PLUGIN_ID, "=", ctx.getPluginId()));
-            a.put(createJSONCondition(ConditionConstants.DEVICE_ID, "=", ctx.getDeviceId()));
-            a.put(createJSONCondition(ConditionConstants.VARIABLE_NAME, "=", VariableConstants.ON));
-            a.put(createJSONCondition(ConditionConstants.VARIABLE_VALUE, "=", (tccc.getContainerClassId().equals(RulesPlugin.CONDITION_CLASS_TURN_ON)) ? "true" : "false"));
-        } else if (tccc.getContainerClassId().equals(RulesPlugin.CONDITION_CLASS_TEMP_ABOVE)) {
-            a.put(createJSONCondition(ConditionConstants.EVENT_ID, "=", VariableUpdateNotificationEvent.ID));
-            DeviceContext ctx = (DeviceContext)condition.getPropertyValue("device");
-            a.put(createJSONCondition(ConditionConstants.PLUGIN_ID, "=", ctx.getPluginId()));
-            a.put(createJSONCondition(ConditionConstants.DEVICE_ID, "=", ctx.getDeviceId()));
-            a.put(createJSONCondition(ConditionConstants.VARIABLE_NAME, "=", VariableConstants.TEMP_F));
-            a.put(createJSONCondition(ConditionConstants.VARIABLE_VALUE, ">=", condition.getStringPropertyValue("tempF")));
         }
     }
 }
