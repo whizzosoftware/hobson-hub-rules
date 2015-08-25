@@ -14,18 +14,18 @@ import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.plugin.AbstractHobsonPlugin;
 import com.whizzosoftware.hobson.api.plugin.PluginStatus;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
-import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
-import com.whizzosoftware.hobson.api.property.TypedPropertyConstraint;
 import com.whizzosoftware.hobson.api.task.TaskProvider;
-import com.whizzosoftware.hobson.api.variable.VariableConstants;
+import com.whizzosoftware.hobson.rules.condition.DeviceTemperatureAboveConditionClass;
+import com.whizzosoftware.hobson.rules.condition.DeviceTemperatureBelowConditionClass;
+import com.whizzosoftware.hobson.rules.condition.DeviceTurnsOffConditionClass;
+import com.whizzosoftware.hobson.rules.condition.DeviceTurnsOnConditionClass;
 import com.whizzosoftware.hobson.rules.jruleengine.JRETaskProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.io.File;
+import java.io.IOException;
 
 /**
  * A plugin that provides event-based tasks using the JRuleEngine library.
@@ -55,26 +55,30 @@ public class RulesPlugin extends AbstractHobsonPlugin {
     public void onStartup(PropertyContainer config) {
         taskProvider = new JRETaskProvider(getContext());
         taskProvider.setTaskManager(getTaskManager());
-        taskProvider.setRulesFile(getDataFile("rules.json"));
 
-        // publish condition classes
-        publishConditionClass(PropertyContainerClassContext.create(getContext(), CONDITION_CLASS_TURN_ON), "A device turns on", Collections.singletonList(new TypedProperty("devices", "Devices", "The device(s) to monitor", TypedProperty.Type.DEVICES, Collections.singletonMap(TypedPropertyConstraint.deviceVariable, VariableConstants.ON))));
+        try {
+            File rulesFile = File.createTempFile("rules", ".json", getDataDirectory());
+            rulesFile.deleteOnExit();
+            logger.debug("Using local rules file: {}", rulesFile.getAbsolutePath());
+            taskProvider.setRulesFile(rulesFile);
 
-        publishConditionClass(PropertyContainerClassContext.create(getContext(), CONDITION_CLASS_TURN_OFF), "A device turns off", Collections.singletonList(new TypedProperty("devices", "Devices", "The device(s) to monitor", TypedProperty.Type.DEVICES, Collections.singletonMap(TypedPropertyConstraint.deviceVariable, VariableConstants.ON))));
+            // publish condition classes
+            publishConditionClass(new DeviceTurnsOnConditionClass(getContext()));
+            publishConditionClass(new DeviceTurnsOffConditionClass(getContext()));
+            publishConditionClass(new DeviceTemperatureAboveConditionClass(getContext()));
+            publishConditionClass(new DeviceTemperatureBelowConditionClass(getContext()));
 
-        List<TypedProperty> props = new ArrayList<>();
-        props.add(new TypedProperty("devices", "Devices", "The device(s) reporting the temperature", TypedProperty.Type.DEVICES, Collections.singletonMap(TypedPropertyConstraint.deviceVariable, VariableConstants.TEMP_F)));
-        props.add(new TypedProperty("tempF", "Temperature", "The temperature in Fahrenheit", TypedProperty.Type.NUMBER));
-        publishConditionClass(PropertyContainerClassContext.create(getContext(), CONDITION_CLASS_TEMP_ABOVE), "A device temperature rises above", props);
+            // set the plugin status to running
+            setStatus(PluginStatus.running());
+            logger.debug("Rules plugin has started");
+        } catch (IOException e) {
+            logger.error("Unable to create local rules file", e);
+            setStatus(PluginStatus.failed("Unable to create local rules file"));
+        }
+    }
 
-        props = new ArrayList<>();
-        props.add(new TypedProperty("devices", "Devices", "The device(s) reporting the temperature", TypedProperty.Type.DEVICES, Collections.singletonMap(TypedPropertyConstraint.deviceVariable, VariableConstants.TEMP_F)));
-        props.add(new TypedProperty("tempF", "Temperature", "The temperature in Fahrenheit", TypedProperty.Type.NUMBER));
-        publishConditionClass(PropertyContainerClassContext.create(getContext(), CONDITION_CLASS_TEMP_BELOW), "A device temperature drops below", props);
-
-        // set the plugin status to running
-        setStatus(PluginStatus.running());
-        logger.debug("Rules plugin has started");
+    @Override
+    public void onShutdown() {
     }
 
     @Override

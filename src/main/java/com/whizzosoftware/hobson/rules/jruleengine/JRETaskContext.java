@@ -7,7 +7,8 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.rules.jruleengine;
 
-import com.whizzosoftware.hobson.api.hub.HubContext;
+import com.whizzosoftware.hobson.api.plugin.PluginContext;
+import com.whizzosoftware.hobson.api.task.TaskContext;
 import com.whizzosoftware.hobson.api.task.TaskManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,19 +22,28 @@ import org.slf4j.LoggerFactory;
 public class JRETaskContext {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private HubContext ctx;
+    private PluginContext ctx;
     private TaskManager taskManager;
 
-    public JRETaskContext(HubContext ctx, TaskManager taskManager) {
+    public JRETaskContext(PluginContext ctx, TaskManager taskManager) {
         this.ctx = ctx;
         this.taskManager = taskManager;
     }
 
-    public void executeActionSet(String actionSetId) {
+    /**
+     * Sets the action set ID. This is really just a dummy method so that we can
+     * retain the task's action set ID in the JRuleEngine JSON definition.
+     *
+     * @param actionSetId the action set ID
+     */
+    public void setActionSet(String actionSetId) {
+    }
+
+    public void fireTaskTrigger(String taskCtxStr) {
         try {
-            taskManager.executeActionSet(ctx, actionSetId);
+            taskManager.fireTaskTrigger(TaskContext.create(taskCtxStr));
         } catch (Exception e) {
-            logger.error("Error executing action set", e);
+            logger.error("Error firing task trigger", e);
         }
     }
 }

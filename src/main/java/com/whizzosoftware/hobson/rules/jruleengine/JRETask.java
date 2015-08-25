@@ -13,8 +13,6 @@ import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.plugin.PluginContext;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
-import com.whizzosoftware.hobson.api.property.PropertyContainerSet;
-import com.whizzosoftware.hobson.api.task.HobsonTask;
 import com.whizzosoftware.hobson.api.task.TaskContext;
 import com.whizzosoftware.hobson.api.variable.VariableConstants;
 import com.whizzosoftware.hobson.rules.RulesPlugin;
@@ -34,47 +32,31 @@ import java.util.*;
  *
  * @author Dan Noguerol
  */
-public class JRETask extends HobsonTask {
-    /**
-     * The actual JRuleEngine rule that will be evaluated
-     */
+public class JRETask {
+    private TaskContext context;
+    private String name;
+    private PropertyContainer triggerCondition;
     private RuleImpl rule;
 
     public JRETask(PluginContext context, RuleImpl rule) throws Exception {
+        this.context = TaskContext.create(context.getHubContext(), rule.getName());
         this.rule = rule;
-        setContext(TaskContext.create(context, rule.getDescription()));
-        setName(rule.getDescription());
-        setConditionSet(new PropertyContainerSet(TaskConditionFactory.createCondition(context, rule.getAssumptions())));
-
-        if (rule.getActions().size() == 1) {
-            Action a = (Action)rule.getActions().get(0);
-            if (ConditionConstants.EXECUTE_ACTIONSET.equals(a.getMethod())) {
-                setActionSet(new PropertyContainerSet((String) a.getValues().get(0), null));
-            } else {
-                throw new HobsonRuntimeException("No action set execution in task definition");
-            }
-        } else {
-            throw new HobsonRuntimeException("No actions in task definition");
-        }
+        this.triggerCondition = TaskConditionFactory.createCondition(context, rule.getAssumptions());
     }
 
-    public JRETask(TaskContext context, String name, String description, PropertyContainerSet conditionSet, PropertyContainerSet actionSet) {
-        setContext(context);
-        setName(name);
-        setDescription(description);
-        setConditionSet(conditionSet);
-        setActionSet(actionSet);
+    public JRETask(TaskContext context, String name, PropertyContainer triggerCondition) {
+        this.context = context;
+        this.name = name;
+        this.triggerCondition = triggerCondition;
 
         try {
             // create assumptions for trigger condition
             ArrayList<Assumption> assumptions = new ArrayList<>();
-            if (conditionSet.hasPrimaryProperty()) {
-                assumptions.addAll(createConditionAssumptions(conditionSet.getPrimaryProperty()));
-            }
+            assumptions.addAll(createConditionAssumptions(triggerCondition));
 
             // create rule
             ArrayList<Action> actions = new ArrayList<>();
-            actions.add(new Action(ConditionConstants.EXECUTE_ACTIONSET, Collections.singletonList(actionSet.getId())));
+            actions.add(new Action(ConditionConstants.FIRE_TRIGGER, Collections.singletonList(context)));
             rule = new RuleImpl(
                 context.getTaskId(),
                 name,
@@ -87,29 +69,34 @@ public class JRETask extends HobsonTask {
         }
     }
 
+    public TaskContext getContext() {
+        return context;
+    }
+
+    public PropertyContainer getTriggerCondition() {
+        return triggerCondition;
+    }
+
     public JSONObject toJSON() {
         JSONObject rule = new JSONObject();
         rule.put("name", getContext().getTaskId());
-        rule.put("description", getName());
+        if (name != null) {
+            rule.put("description", name);
+        } else {
+            rule.put("description", getContext().getTaskId());
+        }
 
         JSONArray ruleAssumps = new JSONArray();
-        if (getConditionSet().hasPrimaryProperty()) {
-            createAssumptionJson(getConditionSet().getPrimaryProperty(), ruleAssumps);
-        }
-        if (getConditionSet().hasProperties()) {
-            for (PropertyContainer condition : getConditionSet().getProperties()) {
-                createAssumptionJson(condition, ruleAssumps);
-            }
+        if (triggerCondition != null) {
+            createAssumptionJson(triggerCondition, ruleAssumps);
         }
         rule.put("assumptions", ruleAssumps);
 
         JSONArray actions = new JSONArray();
-        if (getActionSet().hasId()) {
-            JSONObject action = new JSONObject();
-            action.put("method", ConditionConstants.EXECUTE_ACTIONSET);
-            action.put("arg1", getActionSet().getId());
-            actions.put(action);
-        }
+        JSONObject action = new JSONObject();
+        action.put("method", ConditionConstants.FIRE_TRIGGER);
+        action.put("arg1", getContext());
+        actions.put(action);
         rule.put("actions", actions);
 
         return rule;

@@ -8,19 +8,12 @@
 package com.whizzosoftware.hobson.rules.jruleengine;
 
 import com.whizzosoftware.hobson.api.HobsonRuntimeException;
-import com.whizzosoftware.hobson.api.device.DeviceContext;
 import com.whizzosoftware.hobson.api.event.HobsonEvent;
 import com.whizzosoftware.hobson.api.event.PresenceUpdateEvent;
 import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.plugin.PluginContext;
-import com.whizzosoftware.hobson.api.property.PropertyContainer;
-import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
-import com.whizzosoftware.hobson.api.property.PropertyContainerSet;
 import com.whizzosoftware.hobson.api.task.*;
-import com.whizzosoftware.hobson.api.variable.VariableConstants;
 import com.whizzosoftware.hobson.api.variable.VariableUpdate;
-import com.whizzosoftware.hobson.rules.RulesPlugin;
-import com.whizzosoftware.hobson.rules.condition.*;
 import org.jruleengine.rule.RuleImpl;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -82,10 +75,8 @@ public class JRETaskProvider implements TaskProvider {
 
         if (rulesFile != null) {
             try {
-                // create empty rules file if it doesn't exist
-                if (!rulesFile.exists()) {
-                    writeRuleFile();
-                }
+                // create empty rules file
+                writeRuleFile();
 
                 // load the rules
                 logger.debug("Rules engine loading file: {}", rulesFile.getAbsolutePath());
@@ -100,20 +91,10 @@ public class JRETaskProvider implements TaskProvider {
 
     protected void clearAllTasks() {
         tasks.clear();
-        if (taskManager != null) {
-            taskManager.unpublishAllTasks(pluginContext);
-        } else {
-            logger.error("No task manager set; unable to clear tasks");
-        }
     }
 
     protected void addTask(JRETask task) {
         tasks.put(task.getContext().getTaskId(), task);
-        if (taskManager != null) {
-            taskManager.publishTask(task);
-        } else {
-            throw new HobsonRuntimeException("No task manager set; unable to publish task");
-        }
     }
 
     synchronized public void loadRules(InputStream rules) throws Exception {
@@ -159,13 +140,13 @@ public class JRETaskProvider implements TaskProvider {
                 for (VariableUpdate update : vune.getUpdates()) {
                     List inputList = new LinkedList();
                     inputList.add(new JREEventContext(update));
-                    inputList.add(new JRETaskContext(pluginContext.getHubContext(), taskManager));
+                    inputList.add(new JRETaskContext(pluginContext, taskManager));
                     session.executeRules(inputList);
                 }
             } else if (event instanceof PresenceUpdateEvent) {
                 List inputList = new LinkedList();
                 inputList.add(new JREEventContext((PresenceUpdateEvent)event));
-                inputList.add(new JRETaskContext(pluginContext.getHubContext(), taskManager));
+                inputList.add(new JRETaskContext(pluginContext, taskManager));
                 session.executeRules(inputList);
             }
         } catch (Exception e) {
@@ -182,38 +163,44 @@ public class JRETaskProvider implements TaskProvider {
     }
 
     @Override
-    public void onCreateTask(String name, String description, PropertyContainerSet conditionSet, PropertyContainerSet actionSet) {
-        try {
-            JRETask task = new JRETask(TaskContext.create(pluginContext, UUID.randomUUID().toString()), name, description, conditionSet, actionSet);
-            logger.trace("Adding new task: {}", task);
-            tasks.put(task.getContext().getTaskId(), task);
+    public void onCreateTasks(final Collection<HobsonTask> tasks) {
+        for (HobsonTask task : tasks) {
+            try {
+                JRETask t = new JRETask(TaskContext.create(pluginContext.getHubContext(), task.getContext().getTaskId()), task.getName(), TaskHelper.getTriggerCondition(taskManager, task.getConditions()));
+                logger.info("Adding new task: {}", task.getContext());
+                this.tasks.put(task.getContext().getTaskId(), t);
 
-            // write to file
-            writeRuleFile();
+                // write to file
+                writeRuleFile();
 
-            // re-load rules
-            if (rulesFile != null) {
-                loadRules(new FileInputStream(rulesFile));
+                // re-load rules
+                if (rulesFile != null) {
+                    loadRules(new FileInputStream(rulesFile));
+                }
+            } catch (Exception e) {
+                throw new TaskException("Error adding task", e);
             }
-        } catch (Exception e) {
-            throw new TaskException("Error adding task", e);
         }
     }
 
 
     @Override
-    public void onUpdateTask(TaskContext ctx, String name, String description, PropertyContainerSet conditionSet, PropertyContainerSet actionSet) {
+    public void onUpdateTask(HobsonTask task) {
         try {
-            JRETask jret = (JRETask)tasks.get(ctx.getTaskId());
-            if (jret != null) {
-                tasks.remove(ctx.getTaskId());
-                tasks.put(ctx.getTaskId(), new JRETask(ctx, name, description, conditionSet, actionSet));
+            JRETask t = tasks.get(task.getContext().getTaskId());
+            if (t != null) {
+                logger.info("Updating task: {}", task.getContext());
+
+                tasks.remove(task.getContext().getTaskId());
+                tasks.put(task.getContext().getTaskId(), new JRETask(task.getContext(), task.getName(), TaskHelper.getTriggerCondition(taskManager, task.getConditions())));
 
                 // add to file
                 writeRuleFile();
 
                 // re-load rules
-                loadRules(new FileInputStream(rulesFile));
+                if (rulesFile != null) {
+                    loadRules(new FileInputStream(rulesFile));
+                }
             } else {
                 throw new RuntimeException("Task not found");
             }
@@ -225,16 +212,18 @@ public class JRETaskProvider implements TaskProvider {
     @Override
     public void onDeleteTask(TaskContext ctx) {
         try {
-            JRETask task = (JRETask)tasks.get(ctx.getTaskId());
-            if (task != null) {
-                logger.trace("Removing task: {}", ctx.getTaskId());
+            JRETask t = tasks.get(ctx.getTaskId());
+            if (t != null) {
+                logger.info("Deleting task: {}", ctx.getTaskId());
                 tasks.remove(ctx.getTaskId());
 
                 // write change to file
                 writeRuleFile();
 
                 // re-load rules
-                loadRules(new FileInputStream(rulesFile));
+                if (rulesFile != null) {
+                    loadRules(new FileInputStream(rulesFile));
+                }
             } else {
                 throw new RuntimeException("Task not found");
             }
