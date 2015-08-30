@@ -130,7 +130,7 @@ public class JRETask {
                 Collection<DeviceContext> dctxs = (Collection<DeviceContext>)condition.getPropertyValue("devices");
                 assumpList.add(new Assumption(ConditionConstants.EVENT_ID, "=", VariableUpdateNotificationEvent.ID));
                 assumpList.add(new Assumption("event.deviceCtx", "containsatleastone", "[" + StringUtils.join(dctxs, ',') + "]"));
-                assumpList.add(new Assumption("event.variableName", "=", VariableConstants.TEMP_F));
+                assumpList.add(new Assumption("event.variableName", "=", VariableConstants.INDOOR_TEMP_F));
                 return assumpList;
             }
             default:
@@ -151,13 +151,13 @@ public class JRETask {
             a.put(createJSONCondition(ConditionConstants.EVENT_ID, "=", VariableUpdateNotificationEvent.ID));
             Collection<DeviceContext> ctx = (Collection<DeviceContext>)condition.getPropertyValue("devices");
             a.put(createJSONCondition(ConditionConstants.DEVICE_CTX, "containsatleastone", "[" + StringUtils.join(ctx, ',') + "]"));
-            a.put(createJSONCondition(ConditionConstants.VARIABLE_NAME, "=", VariableConstants.TEMP_F));
+            a.put(createJSONCondition(ConditionConstants.VARIABLE_NAME, "=", VariableConstants.INDOOR_TEMP_F));
             a.put(createJSONCondition(ConditionConstants.VARIABLE_VALUE, ">", condition.getStringPropertyValue("tempF")));
         } else if (tccc.getContainerClassId().equals(RulesPlugin.CONDITION_CLASS_TEMP_BELOW)) {
             a.put(createJSONCondition(ConditionConstants.EVENT_ID, "=", VariableUpdateNotificationEvent.ID));
             Collection<DeviceContext> ctx = (Collection<DeviceContext>)condition.getPropertyValue("devices");
             a.put(createJSONCondition(ConditionConstants.DEVICE_CTX, "containsatleastone", "[" + StringUtils.join(ctx, ',') + "]"));
-            a.put(createJSONCondition(ConditionConstants.VARIABLE_NAME, "=", VariableConstants.TEMP_F));
+            a.put(createJSONCondition(ConditionConstants.VARIABLE_NAME, "=", VariableConstants.INDOOR_TEMP_F));
             a.put(createJSONCondition(ConditionConstants.VARIABLE_VALUE, "<", condition.getStringPropertyValue("tempF")));
         }
     }

@@ -21,11 +21,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class DeviceTemperatureAboveConditionClass extends TaskConditionClass {
-    public static final String CONDITION_CLASS_TEMP_ABOVE = "tempAbove";
+public class DeviceIndoorTempAboveConditionClass extends TaskConditionClass {
+    public static final String CONDITION_CLASS_TEMP_ABOVE = "inTempAbove";
 
-    public DeviceTemperatureAboveConditionClass(PluginContext context) {
-        super(PropertyContainerClassContext.create(context, CONDITION_CLASS_TEMP_ABOVE), "A device temperature rises above", "{devices} temperature rises above {tempF}");
+    public DeviceIndoorTempAboveConditionClass(PluginContext context) {
+        super(PropertyContainerClassContext.create(context, CONDITION_CLASS_TEMP_ABOVE), "An indoor temperature rises above", "{devices} indoor temperature rises above {inTempF}");
     }
 
     @Override
@@ -41,8 +41,8 @@ public class DeviceTemperatureAboveConditionClass extends TaskConditionClass {
     @Override
     protected List<TypedProperty> createProperties() {
         List<TypedProperty> props = new ArrayList<>();
-        props.add(new TypedProperty("devices", "Devices", "The device(s) reporting the temperature", TypedProperty.Type.DEVICES, Collections.singletonMap(TypedPropertyConstraint.deviceVariable, VariableConstants.TEMP_F)));
-        props.add(new TypedProperty("tempF", "Temperature", "The temperature in Fahrenheit", TypedProperty.Type.NUMBER));
+        props.add(new TypedProperty("devices", "Devices", "The device(s) reporting the temperature", TypedProperty.Type.DEVICES, Collections.singletonMap(TypedPropertyConstraint.deviceVariable, VariableConstants.INDOOR_TEMP_F)));
+        props.add(new TypedProperty("inTempF", "Temperature", "The temperature in Fahrenheit", TypedProperty.Type.NUMBER));
         return props;
     }
 }

@@ -301,18 +301,18 @@ public class JRETaskProviderTest {
 
         assertEquals(0, taskManager.getActionSetExecutions().size());
 
-        engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableUpdate(DeviceContext.create(pctx, "device1"), VariableConstants.TEMP_F, 81.0)));
+        engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableUpdate(DeviceContext.create(pctx, "device1"), VariableConstants.INDOOR_TEMP_F, 81.0)));
 
         assertEquals(1, taskManager.getTaskExecutions().size());
         assertNotNull(taskManager.getTaskExecutions().get(0).getTaskId());
 
-        engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableUpdate(DeviceContext.create(pctx, "device1"), VariableConstants.TEMP_F, 79.0)));
+        engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableUpdate(DeviceContext.create(pctx, "device1"), VariableConstants.INDOOR_TEMP_F, 79.0)));
         assertEquals(1, taskManager.getTaskExecutions().size());
 
-        engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableUpdate(DeviceContext.create(pctx, "device3"), VariableConstants.TEMP_F, 81.0)));
+        engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableUpdate(DeviceContext.create(pctx, "device3"), VariableConstants.INDOOR_TEMP_F, 81.0)));
         assertEquals(1, taskManager.getTaskExecutions().size());
 
-        engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableUpdate(DeviceContext.create(pctx, "device2"), VariableConstants.TEMP_F, 81.0)));
+        engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableUpdate(DeviceContext.create(pctx, "device2"), VariableConstants.INDOOR_TEMP_F, 81.0)));
         assertEquals(2, taskManager.getTaskExecutions().size());
     }
 

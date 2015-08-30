@@ -16,8 +16,8 @@ import com.whizzosoftware.hobson.api.plugin.PluginStatus;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
 import com.whizzosoftware.hobson.api.task.TaskProvider;
-import com.whizzosoftware.hobson.rules.condition.DeviceTemperatureAboveConditionClass;
-import com.whizzosoftware.hobson.rules.condition.DeviceTemperatureBelowConditionClass;
+import com.whizzosoftware.hobson.rules.condition.DeviceIndoorTempAboveConditionClass;
+import com.whizzosoftware.hobson.rules.condition.DeviceIndoorTempBelowConditionClass;
 import com.whizzosoftware.hobson.rules.condition.DeviceTurnsOffConditionClass;
 import com.whizzosoftware.hobson.rules.condition.DeviceTurnsOnConditionClass;
 import com.whizzosoftware.hobson.rules.jruleengine.JRETaskProvider;
@@ -65,8 +65,8 @@ public class RulesPlugin extends AbstractHobsonPlugin {
             // publish condition classes
             publishConditionClass(new DeviceTurnsOnConditionClass(getContext()));
             publishConditionClass(new DeviceTurnsOffConditionClass(getContext()));
-            publishConditionClass(new DeviceTemperatureAboveConditionClass(getContext()));
-            publishConditionClass(new DeviceTemperatureBelowConditionClass(getContext()));
+            publishConditionClass(new DeviceIndoorTempAboveConditionClass(getContext()));
+            publishConditionClass(new DeviceIndoorTempBelowConditionClass(getContext()));
 
             // set the plugin status to running
             setStatus(PluginStatus.running());
