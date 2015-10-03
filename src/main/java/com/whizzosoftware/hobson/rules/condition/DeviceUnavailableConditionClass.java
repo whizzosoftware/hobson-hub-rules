@@ -11,23 +11,24 @@ import com.whizzosoftware.hobson.api.plugin.PluginContext;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
-import com.whizzosoftware.hobson.api.property.TypedPropertyConstraint;
 import com.whizzosoftware.hobson.api.task.condition.ConditionClassType;
 import com.whizzosoftware.hobson.api.task.condition.ConditionEvaluationContext;
 import com.whizzosoftware.hobson.api.task.condition.TaskConditionClass;
-import com.whizzosoftware.hobson.api.variable.VariableConstants;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class DeviceIndoorTempAboveConditionClass extends TaskConditionClass {
-    public static final String ID = "inTempAbove";
+/**
+ * A condition class for device availability.
+ *
+ * @author Dan Noguerol
+ */
+public class DeviceUnavailableConditionClass extends TaskConditionClass {
+    public static final String CONDITION_CLASS_DEVICE_NOT_AVAILABLE = "deviceNotAvailable";
 
-    public DeviceIndoorTempAboveConditionClass(PluginContext context) {
-        super(PropertyContainerClassContext.create(context, ID), "An indoor temperature rises above", "{devices} indoor temperature rises above {inTempF}");
+    public DeviceUnavailableConditionClass(PluginContext context) {
+        super(PropertyContainerClassContext.create(context, CONDITION_CLASS_DEVICE_NOT_AVAILABLE), "A device becomes unavailable", "{devices} become(s) unavailable");
     }
-
     @Override
     public ConditionClassType getType() {
         return ConditionClassType.trigger;
@@ -35,14 +36,11 @@ public class DeviceIndoorTempAboveConditionClass extends TaskConditionClass {
 
     @Override
     public boolean evaluate(ConditionEvaluationContext context, PropertyContainer values) {
-        return true;
+        return false;
     }
 
     @Override
     protected List<TypedProperty> createProperties() {
-        List<TypedProperty> props = new ArrayList<>();
-        props.add(new TypedProperty("devices", "Devices", "The device(s) reporting the temperature", TypedProperty.Type.DEVICES, Collections.singletonMap(TypedPropertyConstraint.deviceVariable, VariableConstants.INDOOR_TEMP_F)));
-        props.add(new TypedProperty("inTempF", "Temperature", "The temperature in Fahrenheit", TypedProperty.Type.NUMBER));
-        return props;
+        return Collections.singletonList(new TypedProperty("devices", "Devices", "The device(s) to monitor", TypedProperty.Type.DEVICES, null));
     }
 }

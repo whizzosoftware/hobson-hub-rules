@@ -7,19 +7,13 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.rules;
 
-import com.whizzosoftware.hobson.api.event.EventTopics;
-import com.whizzosoftware.hobson.api.event.HobsonEvent;
-import com.whizzosoftware.hobson.api.event.PresenceUpdateEvent;
-import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
+import com.whizzosoftware.hobson.api.event.*;
 import com.whizzosoftware.hobson.api.plugin.AbstractHobsonPlugin;
 import com.whizzosoftware.hobson.api.plugin.PluginStatus;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
 import com.whizzosoftware.hobson.api.task.TaskProvider;
-import com.whizzosoftware.hobson.rules.condition.DeviceIndoorTempAboveConditionClass;
-import com.whizzosoftware.hobson.rules.condition.DeviceIndoorTempBelowConditionClass;
-import com.whizzosoftware.hobson.rules.condition.DeviceTurnsOffConditionClass;
-import com.whizzosoftware.hobson.rules.condition.DeviceTurnsOnConditionClass;
+import com.whizzosoftware.hobson.rules.condition.*;
 import com.whizzosoftware.hobson.rules.jruleengine.JRETaskProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,11 +28,6 @@ import java.io.IOException;
  */
 public class RulesPlugin extends AbstractHobsonPlugin {
     private final static Logger logger = LoggerFactory.getLogger(RulesPlugin.class);
-
-    public static final String CONDITION_CLASS_TURN_ON = "turnOn";
-    public static final String CONDITION_CLASS_TURN_OFF = "turnOff";
-    public static final String CONDITION_CLASS_TEMP_ABOVE = "tempAbove";
-    public static final String CONDITION_CLASS_TEMP_BELOW = "tempBelow";
 
     private JRETaskProvider taskProvider;
 
@@ -63,10 +52,11 @@ public class RulesPlugin extends AbstractHobsonPlugin {
             taskProvider.setRulesFile(rulesFile);
 
             // publish condition classes
-            publishConditionClass(new DeviceTurnsOnConditionClass(getContext()));
-            publishConditionClass(new DeviceTurnsOffConditionClass(getContext()));
             publishConditionClass(new DeviceIndoorTempAboveConditionClass(getContext()));
             publishConditionClass(new DeviceIndoorTempBelowConditionClass(getContext()));
+            publishConditionClass(new DeviceTurnsOnConditionClass(getContext()));
+            publishConditionClass(new DeviceTurnsOffConditionClass(getContext()));
+            publishConditionClass(new DeviceUnavailableConditionClass(getContext()));
 
             // set the plugin status to running
             setStatus(PluginStatus.running());
@@ -113,6 +103,7 @@ public class RulesPlugin extends AbstractHobsonPlugin {
 
         // for now, the plugin will only process variable and presence update events
         if (event instanceof VariableUpdateNotificationEvent ||
+            event instanceof DeviceUnavailableEvent ||
             event instanceof PresenceUpdateEvent) {
             taskProvider.processEvent(event);
         }

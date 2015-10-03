@@ -14,7 +14,6 @@ import com.whizzosoftware.hobson.api.plugin.PluginContext;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
 import com.whizzosoftware.hobson.api.variable.VariableConstants;
-import com.whizzosoftware.hobson.rules.RulesPlugin;
 import org.apache.commons.lang3.StringUtils;
 import org.jruleengine.rule.Assumption;
 
@@ -61,7 +60,7 @@ public class TaskConditionFactory {
                 case VariableConstants.ON:
                     if ("false".equalsIgnoreCase(varValue.trim())) {
                         return new PropertyContainer(
-                            PropertyContainerClassContext.create(pctx, RulesPlugin.CONDITION_CLASS_TURN_OFF),
+                            PropertyContainerClassContext.create(pctx, DeviceTurnsOffConditionClass.ID),
                             Collections.singletonMap(
                                 "devices",
                                 (Object) DeviceContext.createCollection(removeArrayWrapper(assumpMap.get(ConditionConstants.DEVICE_CTX).getRightTerm()))
@@ -69,7 +68,7 @@ public class TaskConditionFactory {
                         );
                     } else if ("true".equalsIgnoreCase(varValue.trim())) {
                         return new PropertyContainer(
-                            PropertyContainerClassContext.create(pctx, RulesPlugin.CONDITION_CLASS_TURN_ON),
+                            PropertyContainerClassContext.create(pctx, DeviceTurnsOnConditionClass.ID),
                             Collections.singletonMap(
                                 "devices",
                                 (Object) DeviceContext.createCollection(removeArrayWrapper(assumpMap.get(ConditionConstants.DEVICE_CTX).getRightTerm()))

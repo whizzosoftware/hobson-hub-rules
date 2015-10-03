@@ -8,6 +8,7 @@
 package com.whizzosoftware.hobson.rules.jruleengine;
 
 import com.whizzosoftware.hobson.api.HobsonRuntimeException;
+import com.whizzosoftware.hobson.api.event.DeviceUnavailableEvent;
 import com.whizzosoftware.hobson.api.event.HobsonEvent;
 import com.whizzosoftware.hobson.api.event.PresenceUpdateEvent;
 import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
@@ -143,6 +144,12 @@ public class JRETaskProvider implements TaskProvider {
                     inputList.add(new JRETaskContext(pluginContext, taskManager));
                     session.executeRules(inputList);
                 }
+            } else if (event instanceof DeviceUnavailableEvent) {
+                DeviceUnavailableEvent due = (DeviceUnavailableEvent)event;
+                List inputList = new LinkedList();
+                inputList.add(new JREEventContext(due));
+                inputList.add(new JRETaskContext(pluginContext, taskManager));
+                session.executeRules(inputList);
             } else if (event instanceof PresenceUpdateEvent) {
                 List inputList = new LinkedList();
                 inputList.add(new JREEventContext((PresenceUpdateEvent)event));

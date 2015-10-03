@@ -22,10 +22,10 @@ import java.util.Collections;
 import java.util.List;
 
 public class DeviceIndoorTempBelowConditionClass extends TaskConditionClass {
-    public static final String CONDITION_CLASS_TEMP_BELOW = "inTempBelow";
+    public static final String ID = "inTempBelow";
 
     public DeviceIndoorTempBelowConditionClass(PluginContext context) {
-        super(PropertyContainerClassContext.create(context, CONDITION_CLASS_TEMP_BELOW), "An indoor temperature drops below", "{devices} outdoor temperature drops below {inTempF}");
+        super(PropertyContainerClassContext.create(context, ID), "An indoor temperature drops below", "{devices} outdoor temperature drops below {inTempF}");
     }
 
     @Override

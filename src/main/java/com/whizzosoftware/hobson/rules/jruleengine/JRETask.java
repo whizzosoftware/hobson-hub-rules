@@ -9,15 +9,14 @@ package com.whizzosoftware.hobson.rules.jruleengine;
 
 import com.whizzosoftware.hobson.api.HobsonRuntimeException;
 import com.whizzosoftware.hobson.api.device.DeviceContext;
+import com.whizzosoftware.hobson.api.event.DeviceUnavailableEvent;
 import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.plugin.PluginContext;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
 import com.whizzosoftware.hobson.api.task.TaskContext;
 import com.whizzosoftware.hobson.api.variable.VariableConstants;
-import com.whizzosoftware.hobson.rules.RulesPlugin;
-import com.whizzosoftware.hobson.rules.condition.ConditionConstants;
-import com.whizzosoftware.hobson.rules.condition.TaskConditionFactory;
+import com.whizzosoftware.hobson.rules.condition.*;
 import org.apache.commons.lang3.StringUtils;
 import org.jruleengine.rule.Action;
 import org.jruleengine.rule.Assumption;
@@ -113,20 +112,26 @@ public class JRETask {
         ArrayList<Assumption> assumpList = new ArrayList<>();
         String conditionClassId = condition.getContainerClassContext().getContainerClassId();
         switch (conditionClassId) {
-            case RulesPlugin.CONDITION_CLASS_TURN_ON:
-            case RulesPlugin.CONDITION_CLASS_TURN_OFF: {
+            case DeviceTurnsOnConditionClass.ID:
+            case DeviceTurnsOffConditionClass.ID: {
                 Collection<DeviceContext> dctxs = (Collection<DeviceContext>)condition.getPropertyValue("devices");
                 if (dctxs != null) {
                     assumpList.add(new Assumption(ConditionConstants.EVENT_ID, "=", VariableUpdateNotificationEvent.ID));
                     assumpList.add(new Assumption("event.deviceCtx", "containsatleastone", "[" + StringUtils.join(dctxs, ',') + "]"));
                     assumpList.add(new Assumption("event.variableName", "=", VariableConstants.ON));
-                    assumpList.add(new Assumption("event.variableValue", "=", RulesPlugin.CONDITION_CLASS_TURN_ON.equals(conditionClassId) ? "true" : "false"));
+                    assumpList.add(new Assumption("event.variableValue", "=", DeviceTurnsOnConditionClass.ID.equals(conditionClassId) ? "true" : "false"));
                     return assumpList;
                 } else {
                     throw new HobsonRuntimeException("No devices property found");
                 }
             }
-            case RulesPlugin.CONDITION_CLASS_TEMP_ABOVE: {
+            case DeviceUnavailableEvent.ID: {
+                Collection<DeviceContext> dctxs = (Collection<DeviceContext>)condition.getPropertyValue("devices");
+                assumpList.add(new Assumption(ConditionConstants.EVENT_ID, "=", DeviceUnavailableEvent.ID));
+                assumpList.add(new Assumption("event.deviceCtx", "containsatleastone", "[" + StringUtils.join(dctxs, ',') + "]"));
+                return assumpList;
+            }
+            case DeviceIndoorTempAboveConditionClass.ID: {
                 Collection<DeviceContext> dctxs = (Collection<DeviceContext>)condition.getPropertyValue("devices");
                 assumpList.add(new Assumption(ConditionConstants.EVENT_ID, "=", VariableUpdateNotificationEvent.ID));
                 assumpList.add(new Assumption("event.deviceCtx", "containsatleastone", "[" + StringUtils.join(dctxs, ',') + "]"));
@@ -141,24 +146,28 @@ public class JRETask {
 
     protected void createAssumptionJson(PropertyContainer condition, JSONArray a) {
         PropertyContainerClassContext tccc = condition.getContainerClassContext();
-        if (tccc.getContainerClassId().equals(RulesPlugin.CONDITION_CLASS_TURN_ON) || tccc.getContainerClassId().equals(RulesPlugin.CONDITION_CLASS_TURN_OFF)) {
+        if (tccc.getContainerClassId().equals(DeviceTurnsOnConditionClass.ID) || tccc.getContainerClassId().equals(DeviceTurnsOffConditionClass.ID)) {
             a.put(createJSONCondition(ConditionConstants.EVENT_ID, "=", VariableUpdateNotificationEvent.ID));
             Collection<DeviceContext> ctx = (Collection<DeviceContext>)condition.getPropertyValue("devices");
             a.put(createJSONCondition(ConditionConstants.DEVICE_CTX, "containsatleastone", "[" + StringUtils.join(ctx, ',') + "]"));
             a.put(createJSONCondition(ConditionConstants.VARIABLE_NAME, "=", VariableConstants.ON));
-            a.put(createJSONCondition(ConditionConstants.VARIABLE_VALUE, "=", (tccc.getContainerClassId().equals(RulesPlugin.CONDITION_CLASS_TURN_ON)) ? "true" : "false"));
-        } else if (tccc.getContainerClassId().equals(RulesPlugin.CONDITION_CLASS_TEMP_ABOVE)) {
+            a.put(createJSONCondition(ConditionConstants.VARIABLE_VALUE, "=", (tccc.getContainerClassId().equals(DeviceTurnsOnConditionClass.ID)) ? "true" : "false"));
+        } else if (tccc.getContainerClassId().equals(DeviceIndoorTempAboveConditionClass.ID)) {
             a.put(createJSONCondition(ConditionConstants.EVENT_ID, "=", VariableUpdateNotificationEvent.ID));
             Collection<DeviceContext> ctx = (Collection<DeviceContext>)condition.getPropertyValue("devices");
             a.put(createJSONCondition(ConditionConstants.DEVICE_CTX, "containsatleastone", "[" + StringUtils.join(ctx, ',') + "]"));
             a.put(createJSONCondition(ConditionConstants.VARIABLE_NAME, "=", VariableConstants.INDOOR_TEMP_F));
             a.put(createJSONCondition(ConditionConstants.VARIABLE_VALUE, ">", condition.getStringPropertyValue("tempF")));
-        } else if (tccc.getContainerClassId().equals(RulesPlugin.CONDITION_CLASS_TEMP_BELOW)) {
+        } else if (tccc.getContainerClassId().equals(DeviceIndoorTempBelowConditionClass.ID)) {
             a.put(createJSONCondition(ConditionConstants.EVENT_ID, "=", VariableUpdateNotificationEvent.ID));
             Collection<DeviceContext> ctx = (Collection<DeviceContext>)condition.getPropertyValue("devices");
             a.put(createJSONCondition(ConditionConstants.DEVICE_CTX, "containsatleastone", "[" + StringUtils.join(ctx, ',') + "]"));
             a.put(createJSONCondition(ConditionConstants.VARIABLE_NAME, "=", VariableConstants.INDOOR_TEMP_F));
             a.put(createJSONCondition(ConditionConstants.VARIABLE_VALUE, "<", condition.getStringPropertyValue("tempF")));
+        } else if (tccc.getContainerClassId().equals(DeviceUnavailableEvent.ID)) {
+            a.put(createJSONCondition(ConditionConstants.EVENT_ID, "=", DeviceUnavailableEvent.ID));
+            Collection<DeviceContext> ctx = (Collection<DeviceContext>)condition.getPropertyValue("devices");
+            a.put(createJSONCondition(ConditionConstants.DEVICE_CTX, "containsatleastone", "[" + StringUtils.join(ctx, ',') + "]"));
         }
     }
 

@@ -15,7 +15,6 @@ import com.whizzosoftware.hobson.api.plugin.PluginContext;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
 import com.whizzosoftware.hobson.api.task.TaskContext;
-import com.whizzosoftware.hobson.rules.RulesPlugin;
 import com.whizzosoftware.hobson.rules.condition.*;
 import org.jruleengine.rule.Action;
 import org.jruleengine.rule.Assumption;
@@ -65,7 +64,7 @@ public class JRETaskTest {
         assertEquals("ruleId", task.getContext().getTaskId());
 
         assertNotNull(task.getTriggerCondition());
-        assertEquals(RulesPlugin.CONDITION_CLASS_TURN_OFF, task.getTriggerCondition().getContainerClassContext().getContainerClassId());
+        assertEquals(DeviceTurnsOffConditionClass.ID, task.getTriggerCondition().getContainerClassContext().getContainerClassId());
         Collection<DeviceContext> ctxs = (Collection<DeviceContext>)task.getTriggerCondition().getPropertyValue("devices");
         assertNotNull(ctxs);
         assertEquals(1, ctxs.size());
@@ -99,7 +98,7 @@ public class JRETaskTest {
         assertNotNull("rule1", task.getContext().getTaskId());
 
         assertNotNull(task.getTriggerCondition());
-        assertEquals(RulesPlugin.CONDITION_CLASS_TURN_ON, task.getTriggerCondition().getContainerClassContext().getContainerClassId());
+        assertEquals(DeviceTurnsOnConditionClass.ID, task.getTriggerCondition().getContainerClassContext().getContainerClassId());
         Collection<DeviceContext> ctxs = (Collection<DeviceContext>)task.getTriggerCondition().getPropertyValue("devices");
         assertNotNull(ctxs);
         assertEquals(1, ctxs.size());
@@ -117,7 +116,7 @@ public class JRETaskTest {
             TaskContext.create(hctx, "task1"),
             "Task 1",
             new PropertyContainer(
-                PropertyContainerClassContext.create(pctx, RulesPlugin.CONDITION_CLASS_TURN_OFF),
+                PropertyContainerClassContext.create(pctx, DeviceTurnsOffConditionClass.ID),
                 Collections.singletonMap("devices", (Object)Collections.singletonList(DeviceContext.createLocal("com.whizzosoftware.hobson.hobson-hub-zwave", "zwave-32")))
             )
         );
@@ -126,7 +125,7 @@ public class JRETaskTest {
         assertNotNull(task.getContext().getTaskId());
 
         assertNotNull(task.getTriggerCondition());
-        assertEquals(RulesPlugin.CONDITION_CLASS_TURN_OFF, task.getTriggerCondition().getContainerClassContext().getContainerClassId());
+        assertEquals(DeviceTurnsOffConditionClass.ID, task.getTriggerCondition().getContainerClassContext().getContainerClassId());
         Collection<DeviceContext> ctxs = (Collection<DeviceContext>)task.getTriggerCondition().getPropertyValue("devices");
         assertNotNull(ctxs);
         assertEquals(1, ctxs.size());
@@ -144,7 +143,7 @@ public class JRETaskTest {
             TaskContext.create(hctx, "task1"),
             "Task 1",
             new PropertyContainer(
-                PropertyContainerClassContext.create(pctx, RulesPlugin.CONDITION_CLASS_TURN_ON),
+                PropertyContainerClassContext.create(pctx, DeviceTurnsOnConditionClass.ID),
                 Collections.singletonMap("devices", (Object)Collections.singletonList(DeviceContext.createLocal("com.whizzosoftware.hobson.hobson-hub-zwave", "zwave-32")))
             )
         );
@@ -153,7 +152,7 @@ public class JRETaskTest {
         assertNotNull(task.getContext().getTaskId());
 
         assertNotNull(task.getTriggerCondition());
-        assertEquals(RulesPlugin.CONDITION_CLASS_TURN_ON, task.getTriggerCondition().getContainerClassContext().getContainerClassId());
+        assertEquals(DeviceTurnsOnConditionClass.ID, task.getTriggerCondition().getContainerClassContext().getContainerClassId());
         assertNotNull(task.getTriggerCondition().getPropertyValue("devices"));
 
         Collection<DeviceContext> ctxs = (Collection<DeviceContext>)task.getTriggerCondition().getPropertyValue("devices");

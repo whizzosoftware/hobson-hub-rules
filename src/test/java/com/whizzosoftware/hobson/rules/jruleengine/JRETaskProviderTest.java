@@ -8,21 +8,19 @@
 package com.whizzosoftware.hobson.rules.jruleengine;
 
 import com.whizzosoftware.hobson.api.device.DeviceContext;
+import com.whizzosoftware.hobson.api.event.DeviceUnavailableEvent;
 import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.plugin.PluginContext;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
 import com.whizzosoftware.hobson.api.property.PropertyContainerSet;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
-import com.whizzosoftware.hobson.api.task.HobsonTask;
-import com.whizzosoftware.hobson.api.task.MockTaskManager;
-import com.whizzosoftware.hobson.api.task.TaskContext;
+import com.whizzosoftware.hobson.api.task.*;
 import com.whizzosoftware.hobson.api.task.condition.ConditionClassType;
 import com.whizzosoftware.hobson.api.task.condition.ConditionEvaluationContext;
 import com.whizzosoftware.hobson.api.task.condition.TaskConditionClass;
 import com.whizzosoftware.hobson.api.variable.VariableConstants;
 import com.whizzosoftware.hobson.api.variable.VariableUpdate;
-import com.whizzosoftware.hobson.rules.RulesPlugin;
 import com.whizzosoftware.hobson.rules.condition.*;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -39,24 +37,9 @@ public class JRETaskProviderTest {
     @Test
     public void testRuleConstruction() throws Exception {
         PluginContext pctx = PluginContext.createLocal("pluginId");
-        PropertyContainerClassContext pccc = PropertyContainerClassContext.create(pctx, RulesPlugin.CONDITION_CLASS_TURN_OFF);
+        PropertyContainerClassContext pccc = PropertyContainerClassContext.create(pctx, DeviceTurnsOffConditionClass.ID);
         MockTaskManager taskManager = new MockTaskManager();
-        taskManager.publishConditionClass(new TaskConditionClass(pccc, "", "") {
-            @Override
-            public ConditionClassType getType() {
-                return ConditionClassType.trigger;
-            }
-
-            @Override
-            public List<TypedProperty> createProperties() {
-                return null;
-            }
-
-            @Override
-            public boolean evaluate(ConditionEvaluationContext context, PropertyContainer values) {
-                return true;
-            }
-        });
+        publishConditionClass(taskManager, pccc);
 
         // validate we start with a non-existent temp file
         File ruleFile = File.createTempFile("rules", ".json");
@@ -67,20 +50,12 @@ public class JRETaskProviderTest {
         provider.setTaskManager(taskManager);
         provider.setRulesFile(ruleFile);
 
-        provider.onCreateTasks(Collections.singletonList(
-                new HobsonTask(
-                        TaskContext.create(pctx.getHubContext(), "foo"),
-                        "My Task",
-                        null,
-                        null,
-                        Collections.singletonList(
-                                new PropertyContainer(
-                                        pccc,
-                                        Collections.singletonMap("devices", (Object) Collections.singletonList(DeviceContext.createLocal("com.whizzosoftware.hobson.hobson-hub-zwave", "zwave-32")))
-                                )
-                        ),
-                        new PropertyContainerSet("actionset1", null)
-                )));
+        createTask(provider, TaskContext.createLocal("foo"), Collections.singletonList(
+            new PropertyContainer(
+                pccc,
+                Collections.singletonMap("devices", (Object) Collections.singletonList(DeviceContext.createLocal("com.whizzosoftware.hobson.hobson-hub-zwave", "zwave-32")))
+            )
+        ));
 
         // make sure the provider updated the rule file
         assertTrue(ruleFile.exists());
@@ -184,47 +159,22 @@ public class JRETaskProviderTest {
     @Test
     public void testRuleFileWrite() throws Exception {
         PluginContext ctx = PluginContext.createLocal("plugin1");
-        PropertyContainerClassContext pccc = PropertyContainerClassContext.create(ctx, RulesPlugin.CONDITION_CLASS_TURN_ON);
+        PropertyContainerClassContext pccc = PropertyContainerClassContext.create(ctx, DeviceTurnsOnConditionClass.ID);
 
         File rulesFile = createEmptyRulesFile();
         MockTaskManager taskManager = new MockTaskManager();
-        taskManager.publishConditionClass(new TaskConditionClass(pccc, "", "") {
-            @Override
-            public ConditionClassType getType() {
-                return ConditionClassType.trigger;
-            }
-
-            @Override
-            public List<TypedProperty> createProperties() {
-                return null;
-            }
-
-            @Override
-            public boolean evaluate(ConditionEvaluationContext context, PropertyContainer values) {
-                return true;
-            }
-        });
+        publishConditionClass(taskManager, pccc);
 
         JRETaskProvider engine = new JRETaskProvider(ctx);
         engine.setTaskManager(taskManager);
         engine.setRulesFile(rulesFile);
 
-        engine.onCreateTasks(Collections.singletonList(new HobsonTask(
-                TaskContext.createLocal("task1"),
-                "New Task",
-                null,
-                null,
-                Collections.singletonList(
-                        new PropertyContainer(
-                                pccc,
-                                Collections.singletonMap("devices", (Object) Collections.singletonList(DeviceContext.createLocal("plugin2", "device1")))
-                        )
-                ),
-                new PropertyContainerSet(
-                        "actionset1",
-                        null
-                )
-        )));
+        createTask(engine, TaskContext.createLocal("task1"), Collections.singletonList(
+            new PropertyContainer(
+                pccc,
+                Collections.singletonMap("devices", (Object) Collections.singletonList(DeviceContext.createLocal("plugin2", "device1")))
+            )
+        ));
 
         JSONObject json = new JSONObject(new JSONTokener(new FileInputStream(rulesFile)));
 
@@ -255,25 +205,10 @@ public class JRETaskProviderTest {
     public void testProcessEventForTemperatureOutOfRange() throws Exception {
         File rulesFile = createEmptyRulesFile();
         PluginContext ctx = PluginContext.createLocal("plugin1");
-        PropertyContainerClassContext pccc = PropertyContainerClassContext.create(ctx, RulesPlugin.CONDITION_CLASS_TEMP_ABOVE);
+        PropertyContainerClassContext pccc = PropertyContainerClassContext.create(ctx, DeviceIndoorTempAboveConditionClass.ID);
 
         MockTaskManager taskManager = new MockTaskManager();
-        taskManager.publishConditionClass(new TaskConditionClass(pccc, "", "") {
-            @Override
-            public ConditionClassType getType() {
-                return ConditionClassType.trigger;
-            }
-
-            @Override
-            public List<TypedProperty> createProperties() {
-                return null;
-            }
-
-            @Override
-            public boolean evaluate(ConditionEvaluationContext context, PropertyContainer values) {
-                return true;
-            }
-        });
+        publishConditionClass(taskManager, pccc);
 
         JRETaskProvider engine = new JRETaskProvider(ctx);
         engine.setTaskManager(taskManager);
@@ -287,16 +222,9 @@ public class JRETaskProviderTest {
         ctxs.add(DeviceContext.create(pctx, "device2"));
         propValues.put("devices", ctxs);
         propValues.put("tempF", "80");
-        engine.onCreateTasks(Collections.singletonList(new HobsonTask(
-            TaskContext.createLocal("task1"),
-            "My Task",
-            null,
-            null,
-            Collections.singletonList(new PropertyContainer(
-                    pccc,
-                    propValues
-            )),
-            new PropertyContainerSet("actionset1", null)
+        createTask(engine, TaskContext.createLocal("task1"), Collections.singletonList(new PropertyContainer(
+            pccc,
+            propValues
         )));
 
         assertEquals(0, taskManager.getActionSetExecutions().size());
@@ -314,6 +242,38 @@ public class JRETaskProviderTest {
 
         engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableUpdate(DeviceContext.create(pctx, "device2"), VariableConstants.INDOOR_TEMP_F, 81.0)));
         assertEquals(2, taskManager.getTaskExecutions().size());
+    }
+
+    @Test
+    public void testProcessEventForDeviceUnavailable() throws Exception {
+        File rulesFile = createEmptyRulesFile();
+        PluginContext ctx = PluginContext.createLocal("plugin1");
+        PropertyContainerClassContext pccc = PropertyContainerClassContext.create(ctx, DeviceUnavailableEvent.ID);
+
+        MockTaskManager taskManager = new MockTaskManager();
+        publishConditionClass(taskManager, pccc);
+
+        JRETaskProvider engine = new JRETaskProvider(ctx);
+        engine.setTaskManager(taskManager);
+        engine.setRulesFile(rulesFile);
+
+        PluginContext pctx = PluginContext.createLocal("plugin");
+
+        Map<String,Object> propValues = new HashMap<>();
+        ArrayList<DeviceContext> ctxs = new ArrayList<>();
+        ctxs.add(DeviceContext.create(pctx, "device1"));
+        propValues.put("devices", ctxs);
+        createTask(engine, TaskContext.createLocal("task1"), Collections.singletonList(new PropertyContainer(
+            pccc,
+            propValues
+        )));
+
+        assertEquals(0, taskManager.getActionSetExecutions().size());
+
+        engine.processEvent(new DeviceUnavailableEvent(System.currentTimeMillis(), DeviceContext.create(pctx, "device1")));
+
+        assertEquals(1, taskManager.getTaskExecutions().size());
+        assertNotNull(taskManager.getTaskExecutions().get(0).getTaskId());
     }
 
     protected void assertPrefix(JSONObject json) throws JSONException {
@@ -338,5 +298,36 @@ public class JRETaskProviderTest {
         );
         writer.close();
         return rulesFile;
+    }
+
+    protected void createTask(TaskProvider provider, TaskContext tctx, List<PropertyContainer> conditions) {
+        provider.onCreateTasks(Collections.singletonList(
+            new HobsonTask(
+                tctx,
+                "My Task",
+                null,
+                null,
+                conditions,
+                new PropertyContainerSet("actionset1", null)
+            )));
+    }
+
+    protected void publishConditionClass(TaskManager tm, PropertyContainerClassContext pccc) {
+        tm.publishConditionClass(new TaskConditionClass(pccc, "", "") {
+            @Override
+            public ConditionClassType getType() {
+                return ConditionClassType.trigger;
+            }
+
+            @Override
+            public List<TypedProperty> createProperties() {
+                return null;
+            }
+
+            @Override
+            public boolean evaluate(ConditionEvaluationContext context, PropertyContainer values) {
+                return true;
+            }
+        });
     }
 }

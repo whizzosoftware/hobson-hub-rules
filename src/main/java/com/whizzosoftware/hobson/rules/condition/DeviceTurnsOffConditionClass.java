@@ -21,10 +21,10 @@ import java.util.Collections;
 import java.util.List;
 
 public class DeviceTurnsOffConditionClass extends TaskConditionClass {
-    public static final String CONDITION_CLASS_TURN_OFF = "turnOff";
+    public static final String ID = "turnOff";
 
     public DeviceTurnsOffConditionClass(PluginContext context) {
-        super(PropertyContainerClassContext.create(context, CONDITION_CLASS_TURN_OFF), "A device turns off", "{devices} turns off");
+        super(PropertyContainerClassContext.create(context, ID), "A device turns off", "{devices} turns off");
     }
 
     @Override
