@@ -30,7 +30,7 @@ public class DeviceUnavailableConditionClass extends TaskConditionClass {
         super(PropertyContainerClassContext.create(context, CONDITION_CLASS_DEVICE_NOT_AVAILABLE), "A device becomes unavailable", "{devices} become(s) unavailable");
     }
     @Override
-    public ConditionClassType getType() {
+    public ConditionClassType getConditionClassType() {
         return ConditionClassType.trigger;
     }
 

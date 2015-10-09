@@ -29,7 +29,7 @@ public class DeviceIndoorTempAboveConditionClass extends TaskConditionClass {
     }
 
     @Override
-    public ConditionClassType getType() {
+    public ConditionClassType getConditionClassType() {
         return ConditionClassType.trigger;
     }
 

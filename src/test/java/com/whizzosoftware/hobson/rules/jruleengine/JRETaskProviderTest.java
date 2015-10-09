@@ -315,7 +315,7 @@ public class JRETaskProviderTest {
     protected void publishConditionClass(TaskManager tm, PropertyContainerClassContext pccc) {
         tm.publishConditionClass(new TaskConditionClass(pccc, "", "") {
             @Override
-            public ConditionClassType getType() {
+            public ConditionClassType getConditionClassType() {
                 return ConditionClassType.trigger;
             }
 
