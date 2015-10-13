@@ -8,9 +8,7 @@
 package com.whizzosoftware.hobson.rules.condition;
 
 import com.whizzosoftware.hobson.api.plugin.PluginContext;
-import com.whizzosoftware.hobson.api.property.PropertyContainer;
-import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
-import com.whizzosoftware.hobson.api.property.TypedProperty;
+import com.whizzosoftware.hobson.api.property.*;
 import com.whizzosoftware.hobson.api.task.condition.ConditionClassType;
 import com.whizzosoftware.hobson.api.task.condition.ConditionEvaluationContext;
 import com.whizzosoftware.hobson.api.task.condition.TaskConditionClass;
@@ -41,6 +39,9 @@ public class DeviceUnavailableConditionClass extends TaskConditionClass {
 
     @Override
     protected List<TypedProperty> createProperties() {
-        return Collections.singletonList(new TypedProperty("devices", "Devices", "The device(s) to monitor", TypedProperty.Type.DEVICES, null));
+        return Collections.singletonList(new TypedProperty.Builder("devices", "Devices", "The device(s) to monitor", TypedProperty.Type.DEVICES).
+            constraint(PropertyConstraintType.required, true).
+            build()
+        );
     }
 }
