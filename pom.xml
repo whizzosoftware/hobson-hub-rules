@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.whizzosoftware.hobson.hub</groupId>
     <artifactId>hobson-hub-rules</artifactId>
-    <version>0.6.0</version>
+    <version>0.6.1-SNAPSHOT</version>
     <packaging>bundle</packaging>
     <name>Hobson Rules Plugin</name>
     <description>Provides the ability to create event-based tasks.</description>
