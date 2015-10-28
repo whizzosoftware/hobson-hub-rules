@@ -12,6 +12,8 @@ import com.whizzosoftware.hobson.api.device.DeviceContext;
 import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.hub.HubContext;
 import com.whizzosoftware.hobson.api.plugin.PluginContext;
+import com.whizzosoftware.hobson.api.presence.PresenceEntityContext;
+import com.whizzosoftware.hobson.api.presence.PresenceLocationContext;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
 import com.whizzosoftware.hobson.api.task.TaskContext;
@@ -22,9 +24,7 @@ import org.jruleengine.rule.RuleImpl;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
+import java.util.*;
 
 public class JRETaskTest {
     @Test
@@ -135,7 +135,7 @@ public class JRETaskTest {
     }
 
     @Test
-    public void testJsonConstructorWithTurnOnCondition() throws Exception {
+    public void testConstructorWithTurnOnCondition() throws Exception {
         HubContext hctx = HubContext.createLocal();
         PluginContext pctx = PluginContext.create(hctx, "plugin1");
 
@@ -162,4 +162,77 @@ public class JRETaskTest {
         assertEquals("zwave-32", ctx.getDeviceId());
     }
 
+    @Test
+    public void testConstructorWithPresenceArrivalCondition() throws Exception {
+        HubContext hctx = HubContext.createLocal();
+        PluginContext pctx = PluginContext.create(hctx, "plugin1");
+
+        Map<String,Object> propMap = new HashMap<>();
+        propMap.put("person", PresenceEntityContext.createLocal("person1"));
+        propMap.put("location", PresenceLocationContext.createLocal("location1"));
+
+        JRETask task = new JRETask(
+            TaskContext.create(hctx, "task1"),
+            "Task 1",
+            new PropertyContainer(
+                PropertyContainerClassContext.create(pctx, PresenceArrivalConditionClass.ID),
+                propMap
+            )
+        );
+
+        assertNotNull(task.getContext());
+        assertNotNull(task.getContext().getTaskId());
+
+        assertNotNull(task.getTriggerCondition());
+        assertEquals(PresenceArrivalConditionClass.ID, task.getTriggerCondition().getContainerClassContext().getContainerClassId());
+        assertNotNull(task.getTriggerCondition().getPropertyValue("person"));
+        assertNotNull(task.getTriggerCondition().getPropertyValue("location"));
+
+        PresenceEntityContext ctx = (PresenceEntityContext)task.getTriggerCondition().getPropertyValue("person");
+        assertEquals("local", ctx.getHubId());
+        assertEquals("local", ctx.getUserId());
+        assertEquals("person1", ctx.getEntityId());
+
+        PresenceLocationContext ctx2 = (PresenceLocationContext)task.getTriggerCondition().getPropertyValue("location");
+        assertEquals("local", ctx2.getHubId());
+        assertEquals("local", ctx2.getUserId());
+        assertEquals("location1", ctx2.getLocationId());
+    }
+
+    @Test
+    public void testConstructorWithPresenceDepartureCondition() throws Exception {
+        HubContext hctx = HubContext.createLocal();
+        PluginContext pctx = PluginContext.create(hctx, "plugin1");
+
+        Map<String,Object> propMap = new HashMap<>();
+        propMap.put("person", PresenceEntityContext.createLocal("person1"));
+        propMap.put("location", PresenceLocationContext.createLocal("location1"));
+
+        JRETask task = new JRETask(
+            TaskContext.create(hctx, "task1"),
+            "Task 1",
+            new PropertyContainer(
+                PropertyContainerClassContext.create(pctx, PresenceDepartureConditionClass.ID),
+                propMap
+            )
+        );
+
+        assertNotNull(task.getContext());
+        assertNotNull(task.getContext().getTaskId());
+
+        assertNotNull(task.getTriggerCondition());
+        assertEquals(PresenceDepartureConditionClass.ID, task.getTriggerCondition().getContainerClassContext().getContainerClassId());
+        assertNotNull(task.getTriggerCondition().getPropertyValue("person"));
+        assertNotNull(task.getTriggerCondition().getPropertyValue("location"));
+
+        PresenceEntityContext ctx = (PresenceEntityContext)task.getTriggerCondition().getPropertyValue("person");
+        assertEquals("local", ctx.getHubId());
+        assertEquals("local", ctx.getUserId());
+        assertEquals("person1", ctx.getEntityId());
+
+        PresenceLocationContext ctx2 = (PresenceLocationContext)task.getTriggerCondition().getPropertyValue("location");
+        assertEquals("local", ctx2.getHubId());
+        assertEquals("local", ctx2.getUserId());
+        assertEquals("location1", ctx2.getLocationId());
+    }
 }

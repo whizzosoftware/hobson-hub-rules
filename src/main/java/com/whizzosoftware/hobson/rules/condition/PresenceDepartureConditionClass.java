@@ -8,25 +8,29 @@
 package com.whizzosoftware.hobson.rules.condition;
 
 import com.whizzosoftware.hobson.api.plugin.PluginContext;
-import com.whizzosoftware.hobson.api.property.*;
+import com.whizzosoftware.hobson.api.property.PropertyConstraintType;
+import com.whizzosoftware.hobson.api.property.PropertyContainer;
+import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
+import com.whizzosoftware.hobson.api.property.TypedProperty;
 import com.whizzosoftware.hobson.api.task.condition.ConditionClassType;
 import com.whizzosoftware.hobson.api.task.condition.ConditionEvaluationContext;
 import com.whizzosoftware.hobson.api.task.condition.TaskConditionClass;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A condition class for device availability.
+ * A condition class for presence departures.
  *
  * @author Dan Noguerol
  */
-public class DeviceUnavailableConditionClass extends TaskConditionClass {
-    public static final String ID = "deviceNotAvailable";
+public class PresenceDepartureConditionClass extends TaskConditionClass {
+    public static final String ID = "presenceDeparture";
 
-    public DeviceUnavailableConditionClass(PluginContext context) {
-        super(PropertyContainerClassContext.create(context, ID), "A device becomes unavailable", "{devices} become(s) unavailable");
+    public PresenceDepartureConditionClass(PluginContext context) {
+        super(PropertyContainerClassContext.create(context, ID), "A person departs from somewhere", "{person} departs from {location}");
     }
+
     @Override
     public ConditionClassType getConditionClassType() {
         return ConditionClassType.trigger;
@@ -34,14 +38,20 @@ public class DeviceUnavailableConditionClass extends TaskConditionClass {
 
     @Override
     public boolean evaluate(ConditionEvaluationContext context, PropertyContainer values) {
-        return false;
+        return true;
     }
 
     @Override
     protected List<TypedProperty> createProperties() {
-        return Collections.singletonList(new TypedProperty.Builder("devices", "Devices", "The device(s) to monitor", TypedProperty.Type.DEVICES).
+        List<TypedProperty> props = new ArrayList<>();
+        props.add(new TypedProperty.Builder("person", "Person", "The person to monitor", TypedProperty.Type.PRESENCE_ENTITY).
             constraint(PropertyConstraintType.required, true).
             build()
         );
+        props.add(new TypedProperty.Builder("location", "Location", "The location the person departs from", TypedProperty.Type.LOCATION).
+            constraint(PropertyConstraintType.required, true).
+            build()
+        );
+        return props;
     }
 }

@@ -9,8 +9,11 @@ package com.whizzosoftware.hobson.rules.jruleengine;
 
 import com.whizzosoftware.hobson.api.device.DeviceContext;
 import com.whizzosoftware.hobson.api.event.DeviceUnavailableEvent;
+import com.whizzosoftware.hobson.api.event.PresenceUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.plugin.PluginContext;
+import com.whizzosoftware.hobson.api.presence.PresenceEntityContext;
+import com.whizzosoftware.hobson.api.presence.PresenceLocationContext;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
 import com.whizzosoftware.hobson.api.property.PropertyContainerSet;
@@ -248,7 +251,7 @@ public class JRETaskProviderTest {
     public void testProcessEventForDeviceUnavailable() throws Exception {
         File rulesFile = createEmptyRulesFile();
         PluginContext ctx = PluginContext.createLocal("plugin1");
-        PropertyContainerClassContext pccc = PropertyContainerClassContext.create(ctx, DeviceUnavailableEvent.ID);
+        PropertyContainerClassContext pccc = PropertyContainerClassContext.create(ctx, DeviceUnavailableConditionClass.ID);
 
         MockTaskManager taskManager = new MockTaskManager();
         publishConditionClass(taskManager, pccc);
@@ -276,6 +279,142 @@ public class JRETaskProviderTest {
         assertNotNull(taskManager.getTaskExecutions().get(0).getTaskId());
     }
 
+    @Test
+    public void testProcessEventForPresenceArrival() throws Exception {
+        File rulesFile = createEmptyRulesFile();
+        PluginContext ctx = PluginContext.createLocal("plugin1");
+        PropertyContainerClassContext pccc = PropertyContainerClassContext.create(ctx, PresenceArrivalConditionClass.ID);
+
+        MockTaskManager taskManager = new MockTaskManager();
+        publishConditionClass(taskManager, pccc);
+
+        JRETaskProvider engine = new JRETaskProvider(ctx);
+        engine.setTaskManager(taskManager);
+        engine.setRulesFile(rulesFile);
+
+        Map<String,Object> propValues = new HashMap<>();
+        propValues.put("person", PresenceLocationContext.createLocal("person1"));
+        propValues.put("location", PresenceLocationContext.createLocal("location2"));
+
+        createTask(engine, TaskContext.createLocal("task1"), Collections.singletonList(new PropertyContainer(
+            pccc,
+            propValues
+        )));
+
+        assertEquals(0, taskManager.getActionSetExecutions().size());
+
+        // send a matching event
+        engine.processEvent(new PresenceUpdateNotificationEvent(
+            System.currentTimeMillis(),
+            PresenceEntityContext.createLocal("person1"),
+            PresenceLocationContext.createLocal("location1"),
+            PresenceLocationContext.createLocal("location2")
+        ));
+        assertEquals(1, taskManager.getTaskExecutions().size());
+        assertEquals("task1", taskManager.getTaskExecutions().get(0).getTaskId());
+
+        // send an event with the wrong person
+        taskManager.getTaskExecutions().clear();
+        assertEquals(0, taskManager.getTaskExecutions().size());
+        engine.processEvent(new PresenceUpdateNotificationEvent(
+                System.currentTimeMillis(),
+                PresenceEntityContext.createLocal("person2"),
+                PresenceLocationContext.createLocal("location1"),
+                PresenceLocationContext.createLocal("location2")
+        ));
+        assertEquals(0, taskManager.getTaskExecutions().size());
+
+        // send an event with wrong new location
+        taskManager.getTaskExecutions().clear();
+        assertEquals(0, taskManager.getTaskExecutions().size());
+        engine.processEvent(new PresenceUpdateNotificationEvent(
+                System.currentTimeMillis(),
+                PresenceEntityContext.createLocal("person1"),
+                PresenceLocationContext.createLocal("location1"),
+                PresenceLocationContext.createLocal("location3")
+        ));
+        assertEquals(0, taskManager.getTaskExecutions().size());
+
+        // send an event with identical old/new locations
+        taskManager.getTaskExecutions().clear();
+        assertEquals(0, taskManager.getTaskExecutions().size());
+        engine.processEvent(new PresenceUpdateNotificationEvent(
+                System.currentTimeMillis(),
+                PresenceEntityContext.createLocal("person1"),
+                PresenceLocationContext.createLocal("location1"),
+                PresenceLocationContext.createLocal("location1")
+        ));
+        assertEquals(0, taskManager.getTaskExecutions().size());
+    }
+
+    @Test
+    public void testProcessEventForPresenceDeparture() throws Exception {
+        File rulesFile = createEmptyRulesFile();
+        PluginContext ctx = PluginContext.createLocal("plugin1");
+        PropertyContainerClassContext pccc = PropertyContainerClassContext.create(ctx, PresenceDepartureConditionClass.ID);
+
+        MockTaskManager taskManager = new MockTaskManager();
+        publishConditionClass(taskManager, pccc);
+
+        JRETaskProvider engine = new JRETaskProvider(ctx);
+        engine.setTaskManager(taskManager);
+        engine.setRulesFile(rulesFile);
+
+        Map<String,Object> propValues = new HashMap<>();
+        propValues.put("person", PresenceLocationContext.createLocal("person1"));
+        propValues.put("location", PresenceLocationContext.createLocal("location2"));
+
+        createTask(engine, TaskContext.createLocal("task1"), Collections.singletonList(new PropertyContainer(
+                pccc,
+                propValues
+        )));
+
+        assertEquals(0, taskManager.getActionSetExecutions().size());
+
+        // send a matching event
+        engine.processEvent(new PresenceUpdateNotificationEvent(
+                System.currentTimeMillis(),
+                PresenceEntityContext.createLocal("person1"),
+                PresenceLocationContext.createLocal("location2"),
+                PresenceLocationContext.createLocal("location3")
+        ));
+        assertEquals(1, taskManager.getTaskExecutions().size());
+        assertEquals("task1", taskManager.getTaskExecutions().get(0).getTaskId());
+
+        // send an event with the wrong person
+        taskManager.getTaskExecutions().clear();
+        assertEquals(0, taskManager.getTaskExecutions().size());
+        engine.processEvent(new PresenceUpdateNotificationEvent(
+                System.currentTimeMillis(),
+                PresenceEntityContext.createLocal("person2"),
+                PresenceLocationContext.createLocal("location1"),
+                PresenceLocationContext.createLocal("location2")
+        ));
+        assertEquals(0, taskManager.getTaskExecutions().size());
+
+        // send an event with wrong new location
+        taskManager.getTaskExecutions().clear();
+        assertEquals(0, taskManager.getTaskExecutions().size());
+        engine.processEvent(new PresenceUpdateNotificationEvent(
+                System.currentTimeMillis(),
+                PresenceEntityContext.createLocal("person1"),
+                PresenceLocationContext.createLocal("location3"),
+                PresenceLocationContext.createLocal("location1")
+        ));
+        assertEquals(0, taskManager.getTaskExecutions().size());
+
+        // send an event with identical old/new locations
+        taskManager.getTaskExecutions().clear();
+        assertEquals(0, taskManager.getTaskExecutions().size());
+        engine.processEvent(new PresenceUpdateNotificationEvent(
+                System.currentTimeMillis(),
+                PresenceEntityContext.createLocal("person1"),
+                PresenceLocationContext.createLocal("location2"),
+                PresenceLocationContext.createLocal("location2")
+        ));
+        assertEquals(0, taskManager.getTaskExecutions().size());
+    }
+
     protected void assertPrefix(JSONObject json) throws JSONException {
         assertEquals("Hobson Rules", json.getString("name"));
         assertEquals("Hobson Rules", json.getString("description"));
@@ -287,14 +426,14 @@ public class JRETaskProviderTest {
 
         BufferedWriter writer = new BufferedWriter(new FileWriter(rulesFile));
         writer.write(
-                "{\n" +
-                        "\t\"name\": \"Hobson Rules\",\n" +
-                        "\t\"description\": \"Hobson Rules\",\n" +
-                        "\t\"synonyms\": [\n" +
-                        "\t],\n" +
-                        "\t\"rules\": [\n" +
-                        "\t]\n" +
-                        "}"
+            "{\n" +
+                "\t\"name\": \"Hobson Rules\",\n" +
+                "\t\"description\": \"Hobson Rules\",\n" +
+                "\t\"synonyms\": [\n" +
+                "\t],\n" +
+                "\t\"rules\": [\n" +
+                "\t]\n" +
+                "}"
         );
         writer.close();
         return rulesFile;

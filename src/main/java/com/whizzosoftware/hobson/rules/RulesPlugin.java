@@ -57,6 +57,8 @@ public class RulesPlugin extends AbstractHobsonPlugin {
             publishConditionClass(new DeviceTurnsOnConditionClass(getContext()));
             publishConditionClass(new DeviceTurnsOffConditionClass(getContext()));
             publishConditionClass(new DeviceUnavailableConditionClass(getContext()));
+            publishConditionClass(new PresenceArrivalConditionClass(getContext()));
+            publishConditionClass(new PresenceDepartureConditionClass(getContext()));
 
             // set the plugin status to running
             setStatus(PluginStatus.running());
@@ -101,10 +103,10 @@ public class RulesPlugin extends AbstractHobsonPlugin {
     public void onHobsonEvent(HobsonEvent event) {
         super.onHobsonEvent(event);
 
-        // for now, the plugin will only process variable and presence update events
+        // for now, the plugin will only process variable updates, presence update events and device availability events
         if (event instanceof VariableUpdateNotificationEvent ||
             event instanceof DeviceUnavailableEvent ||
-            event instanceof PresenceUpdateEvent) {
+            event instanceof PresenceUpdateNotificationEvent) {
             taskProvider.processEvent(event);
         }
     }

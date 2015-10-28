@@ -10,6 +10,7 @@ package com.whizzosoftware.hobson.rules.jruleengine;
 import com.whizzosoftware.hobson.api.HobsonRuntimeException;
 import com.whizzosoftware.hobson.api.device.DeviceContext;
 import com.whizzosoftware.hobson.api.event.DeviceUnavailableEvent;
+import com.whizzosoftware.hobson.api.event.PresenceUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.plugin.PluginContext;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
@@ -135,7 +136,28 @@ public class JRETask {
                 Collection<DeviceContext> dctxs = (Collection<DeviceContext>)condition.getPropertyValue("devices");
                 assumpList.add(new Assumption(ConditionConstants.EVENT_ID, "=", VariableUpdateNotificationEvent.ID));
                 assumpList.add(new Assumption("event.deviceCtx", "containsatleastone", "[" + StringUtils.join(dctxs, ',') + "]"));
-                assumpList.add(new Assumption("event.variableName", "=", VariableConstants.INDOOR_TEMP_F));
+                assumpList.add(new Assumption("event.variableName", ">", VariableConstants.INDOOR_TEMP_F));
+                return assumpList;
+            }
+            case DeviceIndoorTempBelowConditionClass.ID: {
+                Collection<DeviceContext> dctxs = (Collection<DeviceContext>)condition.getPropertyValue("devices");
+                assumpList.add(new Assumption(ConditionConstants.EVENT_ID, "=", VariableUpdateNotificationEvent.ID));
+                assumpList.add(new Assumption("event.deviceCtx", "containsatleastone", "[" + StringUtils.join(dctxs, ',') + "]"));
+                assumpList.add(new Assumption("event.variableName", "<", VariableConstants.INDOOR_TEMP_F));
+                return assumpList;
+            }
+            case PresenceArrivalConditionClass.ID: {
+                assumpList.add(new Assumption(ConditionConstants.EVENT_ID, "=", PresenceUpdateNotificationEvent.ID));
+                assumpList.add(new Assumption("event.person", "=", condition.getPropertyValue("person").toString()));
+                assumpList.add(new Assumption("event.oldLocation", "<>", condition.getPropertyValue("location").toString()));
+                assumpList.add(new Assumption("event.newLocation", "=", condition.getPropertyValue("location").toString()));
+                return assumpList;
+            }
+            case PresenceDepartureConditionClass.ID: {
+                assumpList.add(new Assumption(ConditionConstants.EVENT_ID, "=", PresenceUpdateNotificationEvent.ID));
+                assumpList.add(new Assumption("event.person", "=", condition.getPropertyValue("person").toString()));
+                assumpList.add(new Assumption("event.oldLocation", "=", condition.getPropertyValue("location").toString()));
+                assumpList.add(new Assumption("event.newLocation", "=", "null"));
                 return assumpList;
             }
             default:
@@ -164,10 +186,20 @@ public class JRETask {
             a.put(createJSONCondition(ConditionConstants.DEVICE_CTX, "containsatleastone", "[" + StringUtils.join(ctx, ',') + "]"));
             a.put(createJSONCondition(ConditionConstants.VARIABLE_NAME, "=", VariableConstants.INDOOR_TEMP_F));
             a.put(createJSONCondition(ConditionConstants.VARIABLE_VALUE, "<", condition.getStringPropertyValue("tempF")));
-        } else if (tccc.getContainerClassId().equals(DeviceUnavailableEvent.ID)) {
+        } else if (tccc.getContainerClassId().equals(DeviceUnavailableConditionClass.ID)) {
             a.put(createJSONCondition(ConditionConstants.EVENT_ID, "=", DeviceUnavailableEvent.ID));
             Collection<DeviceContext> ctx = (Collection<DeviceContext>)condition.getPropertyValue("devices");
             a.put(createJSONCondition(ConditionConstants.DEVICE_CTX, "containsatleastone", "[" + StringUtils.join(ctx, ',') + "]"));
+        } else if (tccc.getContainerClassId().equals(PresenceArrivalConditionClass.ID)) {
+            a.put(createJSONCondition(ConditionConstants.EVENT_ID, "=", PresenceUpdateNotificationEvent.ID));
+            a.put(createJSONCondition(ConditionConstants.PERSON_CTX, "=", condition.getPropertyValue("person").toString()));
+            a.put(createJSONCondition(ConditionConstants.OLD_LOCATION_CTX, "<>", condition.getPropertyValue("location").toString()));
+            a.put(createJSONCondition(ConditionConstants.NEW_LOCATION_CTX, "=", condition.getPropertyValue("location").toString()));
+        } else if (tccc.getContainerClassId().equals(PresenceDepartureConditionClass.ID)) {
+            a.put(createJSONCondition(ConditionConstants.EVENT_ID, "=", PresenceUpdateNotificationEvent.ID));
+            a.put(createJSONCondition(ConditionConstants.PERSON_CTX, "=", condition.getPropertyValue("person").toString()));
+            a.put(createJSONCondition(ConditionConstants.OLD_LOCATION_CTX, "=", condition.getPropertyValue("location").toString()));
+            a.put(createJSONCondition(ConditionConstants.NEW_LOCATION_CTX, "<>", condition.getPropertyValue("location").toString()));
         }
     }
 

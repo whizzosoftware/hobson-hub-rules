@@ -8,7 +8,7 @@
 package com.whizzosoftware.hobson.rules.jruleengine;
 
 import com.whizzosoftware.hobson.api.event.DeviceUnavailableEvent;
-import com.whizzosoftware.hobson.api.event.PresenceUpdateEvent;
+import com.whizzosoftware.hobson.api.event.PresenceUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.variable.VariableUpdate;
 
@@ -23,8 +23,9 @@ public class JREEventContext {
     private String deviceCtx;
     private String variableName;
     private Object variableValue;
-    private String entityId;
-    private String location;
+    private String oldLocationCtx;
+    private String newLocationCtx;
+    private String personCtx;
 
     public JREEventContext(VariableUpdate update) {
         this.eventId = VariableUpdateNotificationEvent.ID;
@@ -38,10 +39,11 @@ public class JREEventContext {
         this.deviceCtx = event.getDeviceContext().toString();
     }
 
-    public JREEventContext(PresenceUpdateEvent event) {
+    public JREEventContext(PresenceUpdateNotificationEvent event) {
         this.eventId = event.getEventId();
-        this.entityId = event.getEntityId();
-        this.location = event.getLocation();
+        this.personCtx = event.getEntityContext().toString();
+        this.oldLocationCtx = event.getOldLocation() != null ? event.getOldLocation().toString() : null;
+        this.newLocationCtx = event.getNewLocation() != null ? event.getNewLocation().toString() : null;
     }
 
     public String eventId() {
@@ -60,11 +62,15 @@ public class JREEventContext {
         return variableValue;
     }
 
-    public String entityId() {
-        return entityId;
+    public String personCtx() {
+        return personCtx;
     }
 
-    public String location() {
-        return location;
+    public String oldLocationCtx() {
+        return oldLocationCtx;
+    }
+
+    public String newLocationCtx() {
+        return newLocationCtx;
     }
 }
