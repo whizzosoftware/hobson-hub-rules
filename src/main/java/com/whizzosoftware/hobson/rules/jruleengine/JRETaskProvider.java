@@ -13,16 +13,19 @@ import com.whizzosoftware.hobson.api.event.HobsonEvent;
 import com.whizzosoftware.hobson.api.event.PresenceUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.plugin.PluginContext;
+import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.task.*;
+import com.whizzosoftware.hobson.api.task.condition.TaskConditionClass;
+import com.whizzosoftware.hobson.api.task.condition.TaskConditionClassProvider;
 import com.whizzosoftware.hobson.api.variable.VariableUpdate;
-import org.jruleengine.rule.RuleImpl;
+import com.whizzosoftware.hobson.rules.condition.AbstractRuleConditionClass;
+import com.whizzosoftware.hobson.rules.condition.ConditionConstants;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.rules.*;
-import javax.rules.admin.Rule;
 import javax.rules.admin.RuleAdministrator;
 import javax.rules.admin.RuleExecutionSet;
 import java.io.*;
@@ -37,23 +40,25 @@ public class JRETaskProvider implements TaskProvider {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private PluginContext pluginContext;
+    private TaskConditionClassProvider conditionClassProvider;
     private TaskManager taskManager;
     private String ruleUri;
     private File rulesFile;
     private RuleServiceProvider provider;
     private RuleAdministrator administrator;
     private RuleRuntime runtime;
-    private final Map<String,JRETask> tasks = new HashMap<>();
+    private final Map<String,HobsonTask> tasks = new HashMap<>();
 
     /**
      * Constructor.
      *
      * @param pluginContext the context of the plugin creating tasks
      */
-    public JRETaskProvider(PluginContext pluginContext) {
+    public JRETaskProvider(PluginContext pluginContext, TaskConditionClassProvider conditionClassProvider) {
         try {
             Class.forName("org.jruleengine.RuleServiceProviderImpl");
             this.pluginContext = pluginContext;
+            this.conditionClassProvider = conditionClassProvider;
             provider = RuleServiceProviderManager.getRuleServiceProvider("org.jruleengine");
             administrator = provider.getRuleAdministrator();
             logger.debug("Acquired RuleAdministrator: {}", administrator);
@@ -65,10 +70,6 @@ public class JRETaskProvider implements TaskProvider {
 
     public void setTaskManager(TaskManager taskManager) {
         this.taskManager = taskManager;
-    }
-
-    protected Collection<JRETask> getTasks() {
-        return tasks.values();
     }
 
     synchronized public void setRulesFile(File rulesFile) {
@@ -90,14 +91,6 @@ public class JRETaskProvider implements TaskProvider {
         }
     }
 
-    protected void clearAllTasks() {
-        tasks.clear();
-    }
-
-    protected void addTask(JRETask task) {
-        tasks.put(task.getContext().getTaskId(), task);
-    }
-
     synchronized public void loadRules(InputStream rules) throws Exception {
         // create execution set
         Map props = new HashMap();
@@ -105,17 +98,6 @@ public class JRETaskProvider implements TaskProvider {
         RuleExecutionSet res = administrator.getLocalRuleExecutionSetProvider(props).createRuleExecutionSet(rules, null);
         rules.close();
         ruleUri = res.getName();
-
-        // build rule descriptors
-        clearAllTasks();
-        for (Object o : res.getRules()) {
-            if (o instanceof Rule) {
-                JRETask task = new JRETask(pluginContext, (RuleImpl)o);
-                addTask(task);
-            } else {
-                logger.error("Found rule that didn't conform to interface: {}", o);
-            }
-        }
 
         // register execution set
         administrator.registerRuleExecutionSet(ruleUri, res, null);
@@ -173,33 +155,34 @@ public class JRETaskProvider implements TaskProvider {
     public void onCreateTasks(final Collection<HobsonTask> tasks) {
         for (HobsonTask task : tasks) {
             try {
-                JRETask t = new JRETask(TaskContext.create(pluginContext.getHubContext(), task.getContext().getTaskId()), task.getName(), TaskHelper.getTriggerCondition(taskManager, task.getConditions()));
                 logger.info("Adding new task: {}", task.getContext());
-                this.tasks.put(task.getContext().getTaskId(), t);
-
-                // write to file
-                writeRuleFile();
-
-                // re-load rules
-                if (rulesFile != null) {
-                    loadRules(new FileInputStream(rulesFile));
-                }
+                this.tasks.put(task.getContext().getTaskId(), task);
             } catch (Exception e) {
                 throw new TaskException("Error adding task", e);
             }
         }
-    }
 
+        try {
+            // write to file
+            writeRuleFile();
+
+            // re-load rules
+            if (rulesFile != null) {
+                loadRules(new FileInputStream(rulesFile));
+            }
+        } catch (Exception e) {
+            throw new TaskException("Error writing rules file", e);
+        }
+    }
 
     @Override
     public void onUpdateTask(HobsonTask task) {
         try {
-            JRETask t = tasks.get(task.getContext().getTaskId());
+            HobsonTask t = tasks.get(task.getContext().getTaskId());
             if (t != null) {
                 logger.info("Updating task: {}", task.getContext());
 
-                tasks.remove(task.getContext().getTaskId());
-                tasks.put(task.getContext().getTaskId(), new JRETask(task.getContext(), task.getName(), TaskHelper.getTriggerCondition(taskManager, task.getConditions())));
+                tasks.put(task.getContext().getTaskId(), task);
 
                 // add to file
                 writeRuleFile();
@@ -219,7 +202,7 @@ public class JRETaskProvider implements TaskProvider {
     @Override
     public void onDeleteTask(TaskContext ctx) {
         try {
-            JRETask t = tasks.get(ctx.getTaskId());
+            HobsonTask t = tasks.get(ctx.getTaskId());
             if (t != null) {
                 logger.info("Deleting task: {}", ctx.getTaskId());
                 tasks.remove(ctx.getTaskId());
@@ -250,8 +233,8 @@ public class JRETaskProvider implements TaskProvider {
 
             if (tasks.size() > 0) {
                 JSONArray rulesArray = new JSONArray();
-                for (JRETask task : tasks.values()) {
-                    rulesArray.put(task.toJSON());
+                for (HobsonTask task : tasks.values()) {
+                    rulesArray.put(createTaskJSON(conditionClassProvider, task));
                 }
                 rootJson.put("rules", rulesArray);
             }
@@ -261,5 +244,39 @@ public class JRETaskProvider implements TaskProvider {
         } else {
             logger.warn("No rules file defined; unable to write changes");
         }
+    }
+
+    protected JSONObject createTaskJSON(TaskConditionClassProvider provider, HobsonTask task) {
+        JSONObject rule = new JSONObject();
+        rule.put("name", task.getContext().getTaskId());
+        if (task.getName() != null) {
+            rule.put("description", task.getName());
+        } else {
+            rule.put("description", task.getContext().getTaskId());
+        }
+
+        PropertyContainer triggerCondition = TaskHelper.getTriggerCondition(provider, task.getConditions());
+
+        if (triggerCondition != null) {
+            TaskConditionClass tcc = provider.getConditionClass(triggerCondition.getContainerClassContext());
+            if (tcc != null) {
+                if (tcc instanceof AbstractRuleConditionClass) {
+                    rule.put("assumptions", ((AbstractRuleConditionClass)tcc).createAssumptionJSON(triggerCondition));
+                } else {
+                    throw new HobsonRuntimeException("Unable to create rule with non-rule based trigger condition: " + triggerCondition);
+                }
+            } else {
+                throw new HobsonRuntimeException("Unable to create JSON for rule with unknown trigger condition: " + triggerCondition);
+            }
+        }
+
+        JSONArray actions = new JSONArray();
+        JSONObject action = new JSONObject();
+        action.put("method", ConditionConstants.FIRE_TRIGGER);
+        action.put("arg1", task.getContext());
+        actions.put(action);
+        rule.put("actions", actions);
+
+        return rule;
     }
 }

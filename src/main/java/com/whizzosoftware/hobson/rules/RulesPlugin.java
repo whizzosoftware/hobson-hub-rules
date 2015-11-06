@@ -11,8 +11,11 @@ import com.whizzosoftware.hobson.api.event.*;
 import com.whizzosoftware.hobson.api.plugin.AbstractHobsonPlugin;
 import com.whizzosoftware.hobson.api.plugin.PluginStatus;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
+import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
 import com.whizzosoftware.hobson.api.task.TaskProvider;
+import com.whizzosoftware.hobson.api.task.condition.TaskConditionClass;
+import com.whizzosoftware.hobson.api.task.condition.TaskConditionClassProvider;
 import com.whizzosoftware.hobson.rules.condition.*;
 import com.whizzosoftware.hobson.rules.jruleengine.JRETaskProvider;
 import org.slf4j.Logger;
@@ -26,7 +29,7 @@ import java.io.IOException;
  *
  * @author Dan Noguerol
  */
-public class RulesPlugin extends AbstractHobsonPlugin {
+public class RulesPlugin extends AbstractHobsonPlugin implements TaskConditionClassProvider {
     private final static Logger logger = LoggerFactory.getLogger(RulesPlugin.class);
 
     private JRETaskProvider taskProvider;
@@ -42,7 +45,7 @@ public class RulesPlugin extends AbstractHobsonPlugin {
 
     @Override
     public void onStartup(PropertyContainer config) {
-        taskProvider = new JRETaskProvider(getContext());
+        taskProvider = new JRETaskProvider(getContext(), this);
         taskProvider.setTaskManager(getTaskManager());
 
         try {
@@ -109,5 +112,10 @@ public class RulesPlugin extends AbstractHobsonPlugin {
             event instanceof PresenceUpdateNotificationEvent) {
             taskProvider.processEvent(event);
         }
+    }
+
+    @Override
+    public TaskConditionClass getConditionClass(PropertyContainerClassContext ctx) {
+        return getTaskManager().getConditionClass(ctx);
     }
 }

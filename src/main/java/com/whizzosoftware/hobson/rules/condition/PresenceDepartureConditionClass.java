@@ -7,14 +7,19 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.rules.condition;
 
+import com.whizzosoftware.hobson.api.HobsonRuntimeException;
+import com.whizzosoftware.hobson.api.event.PresenceUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.plugin.PluginContext;
+import com.whizzosoftware.hobson.api.presence.PresenceEntityContext;
+import com.whizzosoftware.hobson.api.presence.PresenceLocationContext;
 import com.whizzosoftware.hobson.api.property.PropertyConstraintType;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
 import com.whizzosoftware.hobson.api.task.condition.ConditionClassType;
 import com.whizzosoftware.hobson.api.task.condition.ConditionEvaluationContext;
-import com.whizzosoftware.hobson.api.task.condition.TaskConditionClass;
+import org.jruleengine.rule.Assumption;
+import org.json.JSONArray;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +29,7 @@ import java.util.List;
  *
  * @author Dan Noguerol
  */
-public class PresenceDepartureConditionClass extends TaskConditionClass {
+public class PresenceDepartureConditionClass extends AbstractRuleConditionClass {
     public static final String ID = "presenceDeparture";
 
     public PresenceDepartureConditionClass(PluginContext context) {
@@ -53,5 +58,25 @@ public class PresenceDepartureConditionClass extends TaskConditionClass {
             build()
         );
         return props;
+    }
+
+    @Override
+    public List<Assumption> createConditionAssumptions(PropertyContainer condition) {
+        List<Assumption> assumpList = new ArrayList<>();
+        assumpList.add(new Assumption(ConditionConstants.EVENT_ID, "=", PresenceUpdateNotificationEvent.ID));
+        assumpList.add(new Assumption("event.person", "=", condition.getPropertyValue("person").toString()));
+        assumpList.add(new Assumption("event.oldLocation", "=", condition.getPropertyValue("location").toString()));
+        assumpList.add(new Assumption("event.newLocation", "<>", null));
+        return assumpList;
+    }
+
+    @Override
+    public JSONArray createAssumptionJSON(PropertyContainer condition) {
+        JSONArray a = new JSONArray();
+        a.put(createJSONCondition(ConditionConstants.EVENT_ID, "=", PresenceUpdateNotificationEvent.ID));
+        a.put(createJSONCondition(ConditionConstants.PERSON_CTX, "=", condition.getPropertyValue("person").toString()));
+        a.put(createJSONCondition(ConditionConstants.OLD_LOCATION_CTX, "=", condition.getPropertyValue("location").toString()));
+        a.put(createJSONCondition(ConditionConstants.NEW_LOCATION_CTX, "<>", condition.getPropertyValue("location").toString()));
+        return a;
     }
 }

@@ -7,12 +7,18 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.rules.condition;
 
+import com.whizzosoftware.hobson.api.device.DeviceContext;
+import com.whizzosoftware.hobson.api.event.DeviceUnavailableEvent;
 import com.whizzosoftware.hobson.api.plugin.PluginContext;
 import com.whizzosoftware.hobson.api.property.*;
 import com.whizzosoftware.hobson.api.task.condition.ConditionClassType;
 import com.whizzosoftware.hobson.api.task.condition.ConditionEvaluationContext;
-import com.whizzosoftware.hobson.api.task.condition.TaskConditionClass;
+import org.apache.commons.lang3.StringUtils;
+import org.jruleengine.rule.Assumption;
+import org.json.JSONArray;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -21,7 +27,7 @@ import java.util.List;
  *
  * @author Dan Noguerol
  */
-public class DeviceUnavailableConditionClass extends TaskConditionClass {
+public class DeviceUnavailableConditionClass extends AbstractRuleConditionClass {
     public static final String ID = "deviceNotAvailable";
 
     public DeviceUnavailableConditionClass(PluginContext context) {
@@ -43,5 +49,23 @@ public class DeviceUnavailableConditionClass extends TaskConditionClass {
             constraint(PropertyConstraintType.required, true).
             build()
         );
+    }
+
+    @Override
+    public List<Assumption> createConditionAssumptions(PropertyContainer condition) {
+        List<Assumption> assumpList = new ArrayList<>();
+        Collection<DeviceContext> dctxs = (Collection<DeviceContext>)condition.getPropertyValue("devices");
+        assumpList.add(new Assumption(ConditionConstants.EVENT_ID, "=", DeviceUnavailableEvent.ID));
+        assumpList.add(new Assumption("event.deviceCtx", "containsatleastone", "[" + StringUtils.join(dctxs, ',') + "]"));
+        return assumpList;
+    }
+
+    @Override
+    public JSONArray createAssumptionJSON(PropertyContainer condition) {
+        JSONArray a = new JSONArray();
+        a.put(createJSONCondition(ConditionConstants.EVENT_ID, "=", DeviceUnavailableEvent.ID));
+        Collection<DeviceContext> ctx = (Collection<DeviceContext>)condition.getPropertyValue("devices");
+        a.put(createJSONCondition(ConditionConstants.DEVICE_CTX, "containsatleastone", "[" + StringUtils.join(ctx, ',') + "]"));
+        return a;
     }
 }
