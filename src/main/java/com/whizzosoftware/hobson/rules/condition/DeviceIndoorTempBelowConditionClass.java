@@ -47,7 +47,7 @@ public class DeviceIndoorTempBelowConditionClass extends AbstractRuleConditionCl
             constraint(PropertyConstraintType.deviceVariable, VariableConstants.INDOOR_TEMP_F).
             build()
         );
-        props.add(new TypedProperty.Builder("inTempF", "Temperature", "The temperature in Fahrenheit", TypedProperty.Type.NUMBER).
+        props.add(new TypedProperty.Builder(VariableConstants.INDOOR_TEMP_F, "Temperature", "The temperature in Fahrenheit", TypedProperty.Type.NUMBER).
             constraint(PropertyConstraintType.required, true).
             build()
         );
@@ -71,7 +71,7 @@ public class DeviceIndoorTempBelowConditionClass extends AbstractRuleConditionCl
         Collection<DeviceContext> ctx = (Collection<DeviceContext>)condition.getPropertyValue("devices");
         a.put(createJSONCondition(ConditionConstants.DEVICE_CTX, "containsatleastone", "[" + StringUtils.join(ctx, ',') + "]"));
         a.put(createJSONCondition(ConditionConstants.VARIABLE_NAME, "=", VariableConstants.INDOOR_TEMP_F));
-        a.put(createJSONCondition(ConditionConstants.VARIABLE_VALUE, "<", condition.getStringPropertyValue("tempF")));
+        a.put(createJSONCondition(ConditionConstants.VARIABLE_VALUE, "<", condition.getStringPropertyValue(VariableConstants.INDOOR_TEMP_F)));
         return a;
     }
 }

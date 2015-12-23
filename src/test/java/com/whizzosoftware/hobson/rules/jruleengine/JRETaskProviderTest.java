@@ -248,7 +248,7 @@ public class JRETaskProviderTest {
         ctxs.add(DeviceContext.create(pctx, "device1"));
         ctxs.add(DeviceContext.create(pctx, "device2"));
         propValues.put("devices", ctxs);
-        propValues.put("tempF", "80");
+        propValues.put("inTempF", "80");
         createTask(engine, TaskContext.createLocal("task1"), Collections.singletonList(new PropertyContainer(
             pccc,
             propValues
