@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.whizzosoftware.hobson.hub</groupId>
     <artifactId>hobson-hub-rules</artifactId>
-    <version>0.7.1-SNAPSHOT</version>
+    <version>0.7.1</version>
     <packaging>bundle</packaging>
     <name>Hobson Rules Plugin</name>
     <description>Provides the ability to create event-based tasks.</description>
@@ -135,7 +135,7 @@
     <scm>
         <connection>scm:git:ssh://git@github.com/whizzosoftware/hobson-hub-rules.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/whizzosoftware/hobson-hub-rules.git</developerConnection>
-      	<tag>hobson-hub-rules-0.6.0</tag>
+      	<tag>hobson-hub-rules-0.7.1</tag>
     </scm>
     <distributionManagement>
         <repository>
