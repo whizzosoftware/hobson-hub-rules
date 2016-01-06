@@ -17,6 +17,7 @@ import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.task.*;
 import com.whizzosoftware.hobson.api.task.condition.TaskConditionClass;
 import com.whizzosoftware.hobson.api.task.condition.TaskConditionClassProvider;
+import com.whizzosoftware.hobson.api.variable.VariableChange;
 import com.whizzosoftware.hobson.api.variable.VariableUpdate;
 import com.whizzosoftware.hobson.rules.condition.AbstractRuleConditionClass;
 import com.whizzosoftware.hobson.rules.condition.ConditionConstants;
@@ -120,7 +121,7 @@ public class JRETaskProvider implements TaskProvider {
 
             if (event instanceof VariableUpdateNotificationEvent) {
                 VariableUpdateNotificationEvent vune = (VariableUpdateNotificationEvent)event;
-                for (VariableUpdate update : vune.getUpdates()) {
+                for (VariableChange update : vune.getUpdates()) {
                     List inputList = new LinkedList();
                     inputList.add(new JREEventContext(update));
                     inputList.add(new JRETaskContext(pluginContext, taskManager));
