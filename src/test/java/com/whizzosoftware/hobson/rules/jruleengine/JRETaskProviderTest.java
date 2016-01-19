@@ -18,6 +18,7 @@ import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
 import com.whizzosoftware.hobson.api.property.PropertyContainerSet;
 import com.whizzosoftware.hobson.api.task.*;
+import com.whizzosoftware.hobson.api.variable.HobsonVariable;
 import com.whizzosoftware.hobson.api.variable.VariableChange;
 import com.whizzosoftware.hobson.api.variable.VariableConstants;
 import com.whizzosoftware.hobson.api.variable.VariableContext;
@@ -257,18 +258,18 @@ public class JRETaskProviderTest {
 
         assertEquals(0, taskManager.getActionSetExecutions().size());
 
-        engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableChange(VariableContext.create(pctx, "device1", VariableConstants.INDOOR_TEMP_F), null, 81.0)));
+        engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableChange(VariableContext.create(pctx, "device1", VariableConstants.INDOOR_TEMP_F), HobsonVariable.Mask.READ_ONLY, null, 81.0)));
 
         assertEquals(1, taskManager.getTaskExecutions().size());
         assertNotNull(taskManager.getTaskExecutions().get(0).getTaskId());
 
-        engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableChange(VariableContext.create(pctx, "device1", VariableConstants.INDOOR_TEMP_F), null, 79.0)));
+        engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableChange(VariableContext.create(pctx, "device1", VariableConstants.INDOOR_TEMP_F), HobsonVariable.Mask.READ_ONLY, null, 79.0)));
         assertEquals(1, taskManager.getTaskExecutions().size());
 
-        engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableChange(VariableContext.create(pctx, "device3", VariableConstants.INDOOR_TEMP_F), null, 81.0)));
+        engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableChange(VariableContext.create(pctx, "device3", VariableConstants.INDOOR_TEMP_F), HobsonVariable.Mask.READ_ONLY, null, 81.0)));
         assertEquals(1, taskManager.getTaskExecutions().size());
 
-        engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableChange(VariableContext.create(pctx, "device2", VariableConstants.INDOOR_TEMP_F), null, 81.0)));
+        engine.processEvent(new VariableUpdateNotificationEvent(System.currentTimeMillis(), new VariableChange(VariableContext.create(pctx, "device2", VariableConstants.INDOOR_TEMP_F), HobsonVariable.Mask.READ_ONLY, null, 81.0)));
         assertEquals(2, taskManager.getTaskExecutions().size());
     }
 
