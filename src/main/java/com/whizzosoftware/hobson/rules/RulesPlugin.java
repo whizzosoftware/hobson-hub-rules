@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 
 /**
  * A plugin that provides event-based tasks using the JRuleEngine library.
@@ -48,28 +47,23 @@ public class RulesPlugin extends AbstractHobsonPlugin implements TaskConditionCl
         taskProvider = new JRETaskProvider(getContext(), this);
         taskProvider.setTaskManager(getTaskManager());
 
-        try {
-            File rulesFile = File.createTempFile("rules", ".json", getDataDirectory());
-            rulesFile.deleteOnExit();
-            logger.debug("Using local rules file: {}", rulesFile.getAbsolutePath());
-            taskProvider.setRulesFile(rulesFile);
+        File rulesFile = getDataFile("rules.json");
+        rulesFile.deleteOnExit();
+        logger.debug("Using local rules file: {}", rulesFile.getAbsolutePath());
+        taskProvider.setRulesFile(rulesFile);
 
-            // publish condition classes
-            publishConditionClass(new DeviceIndoorTempAboveConditionClass(getContext()));
-            publishConditionClass(new DeviceIndoorTempBelowConditionClass(getContext()));
-            publishConditionClass(new DeviceTurnsOnConditionClass(getContext()));
-            publishConditionClass(new DeviceTurnsOffConditionClass(getContext()));
-            publishConditionClass(new DeviceUnavailableConditionClass(getContext()));
-            publishConditionClass(new PresenceArrivalConditionClass(getContext()));
-            publishConditionClass(new PresenceDepartureConditionClass(getContext()));
+        // publish condition classes
+        publishConditionClass(new DeviceIndoorTempAboveConditionClass(getContext()));
+        publishConditionClass(new DeviceIndoorTempBelowConditionClass(getContext()));
+        publishConditionClass(new DeviceTurnsOnConditionClass(getContext()));
+        publishConditionClass(new DeviceTurnsOffConditionClass(getContext()));
+        publishConditionClass(new DeviceUnavailableConditionClass(getContext()));
+        publishConditionClass(new PresenceArrivalConditionClass(getContext()));
+        publishConditionClass(new PresenceDepartureConditionClass(getContext()));
 
-            // set the plugin status to running
-            setStatus(PluginStatus.running());
-            logger.debug("Rules plugin has started");
-        } catch (IOException e) {
-            logger.error("Unable to create local rules file", e);
-            setStatus(PluginStatus.failed("Unable to create local rules file"));
-        }
+        // set the plugin status to running
+        setStatus(PluginStatus.running());
+        logger.debug("Rules plugin has started");
     }
 
     @Override
