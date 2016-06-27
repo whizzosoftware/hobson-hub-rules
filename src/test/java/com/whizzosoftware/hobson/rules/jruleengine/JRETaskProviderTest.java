@@ -82,7 +82,7 @@ public class JRETaskProviderTest {
         condition = conditions.getJSONObject(1);
         assertEquals(ConditionConstants.DEVICE_CTX, condition.getString("leftTerm"));
         assertEquals("containsatleastone", condition.getString("op"));
-        assertEquals("[local:local:com.whizzosoftware.hobson.hobson-hub-zwave:zwave-32]", condition.getString("rightTerm"));
+        assertEquals("[local:com.whizzosoftware.hobson.hobson-hub-zwave:zwave-32]", condition.getString("rightTerm"));
         condition = conditions.getJSONObject(2);
         assertEquals(ConditionConstants.VARIABLE_NAME, condition.getString("leftTerm"));
         assertEquals("=", condition.getString("op"));
@@ -96,7 +96,7 @@ public class JRETaskProviderTest {
         assertEquals(1, actions.length());
         JSONObject action = actions.getJSONObject(0);
         assertEquals(ConditionConstants.FIRE_TRIGGER, action.getString("method"));
-        assertTrue(action.getString("arg1").startsWith("local:local:"));
+        assertTrue(action.getString("arg1").startsWith("local:"));
     }
 
 //    @Test

@@ -40,11 +40,11 @@ public class PresenceDepartureConditionClassTest {
 
         assertEquals("event.person", assumps.get(1).getLeftTerm());
         assertEquals("=", assumps.get(1).getOperator());
-        assertEquals("local:local:person1", assumps.get(1).getRightTerm());
+        assertEquals("local:person1", assumps.get(1).getRightTerm());
 
         assertEquals("event.oldLocation", assumps.get(2).getLeftTerm());
         assertEquals("=", assumps.get(2).getOperator());
-        assertEquals("local:local:location1", assumps.get(2).getRightTerm());
+        assertEquals("local:location1", assumps.get(2).getRightTerm());
 
         assertEquals("event.newLocation", assumps.get(3).getLeftTerm());
         assertEquals("<>", assumps.get(3).getOperator());
