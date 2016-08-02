@@ -8,6 +8,7 @@
 package com.whizzosoftware.hobson.rules.jruleengine;
 
 import com.whizzosoftware.hobson.api.event.DeviceUnavailableEvent;
+import com.whizzosoftware.hobson.api.event.ExecuteTaskEvent;
 import com.whizzosoftware.hobson.api.event.PresenceUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.variable.VariableChange;
@@ -27,6 +28,7 @@ public class JREEventContext {
     private String oldLocationCtx;
     private String newLocationCtx;
     private String personCtx;
+    private String taskCtx;
 
     public JREEventContext(VariableChange update) {
         this.eventId = VariableUpdateNotificationEvent.ID;
@@ -46,6 +48,11 @@ public class JREEventContext {
         this.personCtx = event.getEntityContext().toString();
         this.oldLocationCtx = event.getOldLocation() != null ? event.getOldLocation().toString() : null;
         this.newLocationCtx = event.getNewLocation() != null ? event.getNewLocation().toString() : null;
+    }
+
+    public JREEventContext(ExecuteTaskEvent event) {
+        this.eventId = event.getEventId();
+        this.taskCtx = event.getTask().toString();
     }
 
     public String eventId() {
@@ -78,5 +85,9 @@ public class JREEventContext {
 
     public String newLocationCtx() {
         return newLocationCtx;
+    }
+
+    public String taskCtx() {
+        return taskCtx;
     }
 }

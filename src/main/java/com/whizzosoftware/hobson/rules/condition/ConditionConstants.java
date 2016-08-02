@@ -16,5 +16,6 @@ public class ConditionConstants {
     public static final String NEW_LOCATION_CTX = "com.whizzosoftware.hobson.rules.jruleengine.JREEventContext.newLocationCtx";
     public static final String PERSON_CTX = "com.whizzosoftware.hobson.rules.jruleengine.JREEventContext.personCtx";
     public static final String SET_ACTIONSET = "com.whizzosoftware.hobson.rules.jruleengine.JRETaskContext.setActionSet";
+    public static final String TASK_CTX = "com.whizzosoftware.hobson.rules.jruleengine.JREEventContext.taskCtx";
     public static final String FIRE_TRIGGER = "com.whizzosoftware.hobson.rules.jruleengine.JRETaskContext.fireTaskTrigger";
 }
