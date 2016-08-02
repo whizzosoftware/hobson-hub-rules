@@ -104,8 +104,7 @@ public class RulesPlugin extends AbstractHobsonPlugin implements TaskConditionCl
         // for now, the plugin will only process variable updates, presence update events and device availability events
         if (event instanceof VariableUpdateNotificationEvent ||
             event instanceof DeviceUnavailableEvent ||
-            event instanceof PresenceUpdateNotificationEvent ||
-            event instanceof ExecuteTaskEvent) {
+            event instanceof PresenceUpdateNotificationEvent) {
             taskProvider.processEvent(event);
         }
     }

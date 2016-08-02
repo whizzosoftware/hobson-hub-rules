@@ -7,9 +7,7 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.rules.condition;
 
-import com.whizzosoftware.hobson.api.event.ExecuteTaskEvent;
 import com.whizzosoftware.hobson.api.plugin.PluginContext;
-import com.whizzosoftware.hobson.api.property.PropertyConstraintType;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
@@ -18,8 +16,6 @@ import com.whizzosoftware.hobson.api.task.condition.ConditionEvaluationContext;
 import org.jruleengine.rule.Assumption;
 import org.json.JSONArray;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -41,31 +37,21 @@ public class ManualTaskExecutionConditionClass extends AbstractRuleConditionClas
 
     @Override
     public boolean evaluate(ConditionEvaluationContext context, PropertyContainer values) {
-        return true;
+        return false;
     }
 
     @Override
     protected List<TypedProperty> createProperties() {
-        return Collections.singletonList(new TypedProperty.Builder("task", "Task", "The task that is executed", TypedProperty.Type.CURRENT_TASK).
-            isPublic(false).
-            constraint(PropertyConstraintType.required, true).
-            build()
-        );
+        return null;
     }
 
     @Override
     public List<Assumption> createConditionAssumptions(PropertyContainer condition) {
-        List<Assumption> list = new ArrayList<>();
-        list.add(new Assumption(ConditionConstants.EVENT_ID, "=", ExecuteTaskEvent.ID));
-        list.add(new Assumption("event.taskCtx", "=", condition.getPropertyValue("task").toString()));
-        return list;
+        return null;
     }
 
     @Override
     public JSONArray createAssumptionJSON(PropertyContainer condition) {
-        JSONArray a = new JSONArray();
-        a.put(createJSONCondition(ConditionConstants.EVENT_ID, "=", ExecuteTaskEvent.ID));
-        a.put(createJSONCondition(ConditionConstants.TASK_CTX, "=", condition.getPropertyValue("task").toString()));
-        return a;
+        return null;
     }
 }

@@ -135,11 +135,6 @@ public class JRETaskProvider implements TaskProvider {
                 inputList.add(new JREEventContext((PresenceUpdateNotificationEvent)event));
                 inputList.add(new JRETaskContext(pluginContext, taskManager));
                 session.executeRules(inputList);
-            } else if (event instanceof ExecuteTaskEvent) {
-                List inputList = new LinkedList();
-                inputList.add(new JREEventContext((ExecuteTaskEvent)event));
-                inputList.add(new JRETaskContext(pluginContext, taskManager));
-                session.executeRules(inputList);
             }
         } catch (Exception e) {
             logger.error("Error executing rules", e);
