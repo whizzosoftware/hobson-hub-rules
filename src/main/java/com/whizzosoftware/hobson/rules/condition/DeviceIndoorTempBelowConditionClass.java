@@ -8,7 +8,7 @@
 package com.whizzosoftware.hobson.rules.condition;
 
 import com.whizzosoftware.hobson.api.device.DeviceContext;
-import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
+import com.whizzosoftware.hobson.api.event.DeviceVariableUpdateEvent;
 import com.whizzosoftware.hobson.api.plugin.PluginContext;
 import com.whizzosoftware.hobson.api.property.*;
 import com.whizzosoftware.hobson.api.task.condition.ConditionClassType;
@@ -58,7 +58,7 @@ public class DeviceIndoorTempBelowConditionClass extends AbstractRuleConditionCl
     public List<Assumption> createConditionAssumptions(PropertyContainer condition) {
         List<Assumption> assumpList = new ArrayList<>();
         Collection<DeviceContext> dctxs = (Collection<DeviceContext>)condition.getPropertyValue("devices");
-        assumpList.add(new Assumption(ConditionConstants.EVENT_ID, "=", VariableUpdateNotificationEvent.ID));
+        assumpList.add(new Assumption(ConditionConstants.EVENT_ID, "=", DeviceVariableUpdateEvent.ID));
         assumpList.add(new Assumption("event.deviceCtx", "containsatleastone", "[" + StringUtils.join(dctxs, ',') + "]"));
         assumpList.add(new Assumption("event.variableName", "<", VariableConstants.INDOOR_TEMP_F));
         return assumpList;
@@ -67,7 +67,7 @@ public class DeviceIndoorTempBelowConditionClass extends AbstractRuleConditionCl
     @Override
     public JSONArray createAssumptionJSON(PropertyContainer condition) {
         JSONArray a = new JSONArray();
-        a.put(createJSONCondition(ConditionConstants.EVENT_ID, "=", VariableUpdateNotificationEvent.ID));
+        a.put(createJSONCondition(ConditionConstants.EVENT_ID, "=", DeviceVariableUpdateEvent.ID));
         Collection<DeviceContext> ctx = (Collection<DeviceContext>)condition.getPropertyValue("devices");
         a.put(createJSONCondition(ConditionConstants.DEVICE_CTX, "containsatleastone", "[" + StringUtils.join(ctx, ',') + "]"));
         a.put(createJSONCondition(ConditionConstants.VARIABLE_NAME, "=", VariableConstants.INDOOR_TEMP_F));

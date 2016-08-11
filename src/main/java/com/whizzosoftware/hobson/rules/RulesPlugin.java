@@ -90,7 +90,7 @@ public class RulesPlugin extends AbstractHobsonPlugin implements TaskConditionCl
     public void onRefresh() {}
 
     @Override
-    protected TypedProperty[] createSupportedProperties() {
+    protected TypedProperty[] getConfigurationPropertyTypes() {
         return null;
     }
 
@@ -102,7 +102,7 @@ public class RulesPlugin extends AbstractHobsonPlugin implements TaskConditionCl
         super.onHobsonEvent(event);
 
         // for now, the plugin will only process variable updates, presence update events and device availability events
-        if (event instanceof VariableUpdateNotificationEvent ||
+        if (event instanceof DeviceVariableUpdateEvent ||
             event instanceof DeviceUnavailableEvent ||
             event instanceof PresenceUpdateNotificationEvent) {
             taskProvider.processEvent(event);

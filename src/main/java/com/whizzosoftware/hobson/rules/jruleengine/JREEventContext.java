@@ -8,9 +8,9 @@
 package com.whizzosoftware.hobson.rules.jruleengine;
 
 import com.whizzosoftware.hobson.api.event.DeviceUnavailableEvent;
+import com.whizzosoftware.hobson.api.event.DeviceVariableUpdateEvent;
 import com.whizzosoftware.hobson.api.event.PresenceUpdateNotificationEvent;
-import com.whizzosoftware.hobson.api.event.VariableUpdateNotificationEvent;
-import com.whizzosoftware.hobson.api.variable.VariableChange;
+import com.whizzosoftware.hobson.api.variable.DeviceVariableUpdate;
 
 /**
  * A context object that provides methods that rules can use for their conditions. This is needed for JRuleEngine
@@ -28,8 +28,8 @@ public class JREEventContext {
     private String newLocationCtx;
     private String personCtx;
 
-    public JREEventContext(VariableChange update) {
-        this.eventId = VariableUpdateNotificationEvent.ID;
+    public JREEventContext(DeviceVariableUpdate update) {
+        this.eventId = DeviceVariableUpdateEvent.ID;
         this.deviceCtx = update.getContext().getDeviceContext().toString();
         this.variableName = update.getName();
         this.variableOldValue = update.getOldValue();
