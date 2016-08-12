@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.whizzosoftware.hobson.hub</groupId>
     <artifactId>hobson-hub-rules</artifactId>
-    <version>0.9.1-SNAPSHOT</version>
+    <version>0.10.0-SNAPSHOT</version>
     <packaging>bundle</packaging>
     <name>Hobson Rules Plugin</name>
     <description>Provides the ability to create event-based tasks.</description>
@@ -39,7 +39,7 @@
         <dependency>
             <groupId>com.whizzosoftware.hobson.hub</groupId>
             <artifactId>hobson-hub-api</artifactId>
-            <version>0.9.1-SNAPSHOT</version>
+            <version>0.10.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -99,7 +99,7 @@
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-                        <Import-Package>org.osgi.framework,org.osgi.service.event,org.apache.felix.dm.*,javax.servlet.*,org.slf4j,org.json.*,org.apache.commons.lang3.*,com.whizzosoftware.hobson.api.*;version="[0.9.0,0.10)</Import-Package>
+                        <Import-Package>org.osgi.framework,org.osgi.service.event,org.apache.felix.dm.*,javax.servlet.*,org.slf4j,org.json.*,org.apache.commons.lang3.*,com.whizzosoftware.hobson.api.*;version="[0.10.0,0.11)</Import-Package>
                         <Bundle-Activator>com.whizzosoftware.hobson.api.osgi.activator.HobsonBundleActivator</Bundle-Activator>
                         <Embed-Dependency>jruleengine;scope=compile|runtime,jsr94;scope=compile|runtime</Embed-Dependency>
                         <Provide-Capability>hobson.plugin=com.whizzosoftware.hobson.rules.RulesPlugin</Provide-Capability>
