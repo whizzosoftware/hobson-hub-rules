@@ -16,7 +16,6 @@ import com.whizzosoftware.hobson.api.property.TypedProperty;
 import com.whizzosoftware.hobson.api.task.TaskProvider;
 import com.whizzosoftware.hobson.api.task.condition.*;
 import com.whizzosoftware.hobson.rules.condition.*;
-import com.whizzosoftware.hobson.rules.condition.ManualTaskExecutionConditionClass;
 import com.whizzosoftware.hobson.rules.jruleengine.JRETaskProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,7 +59,6 @@ public class RulesPlugin extends AbstractHobsonPlugin implements TaskConditionCl
         publishConditionClass(new DeviceUnavailableConditionClass(getContext()));
         publishConditionClass(new PresenceArrivalConditionClass(getContext()));
         publishConditionClass(new PresenceDepartureConditionClass(getContext()));
-        publishConditionClass(new ManualTaskExecutionConditionClass(getContext()));
 
         // set the plugin status to running
         setStatus(PluginStatus.running());
