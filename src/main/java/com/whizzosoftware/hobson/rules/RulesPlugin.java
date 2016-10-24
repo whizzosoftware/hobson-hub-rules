@@ -10,10 +10,10 @@ package com.whizzosoftware.hobson.rules;
 import com.whizzosoftware.hobson.api.event.*;
 import com.whizzosoftware.hobson.api.plugin.AbstractHobsonPlugin;
 import com.whizzosoftware.hobson.api.plugin.PluginStatus;
+import com.whizzosoftware.hobson.api.plugin.PluginType;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;
 import com.whizzosoftware.hobson.api.property.PropertyContainerClassContext;
 import com.whizzosoftware.hobson.api.property.TypedProperty;
-import com.whizzosoftware.hobson.api.task.TaskProvider;
 import com.whizzosoftware.hobson.api.task.condition.*;
 import com.whizzosoftware.hobson.rules.condition.*;
 import com.whizzosoftware.hobson.rules.jruleengine.JRETaskProvider;
@@ -32,8 +32,8 @@ public class RulesPlugin extends AbstractHobsonPlugin implements TaskConditionCl
 
     private JRETaskProvider taskProvider;
 
-    public RulesPlugin(String pluginId) {
-        super(pluginId);
+    public RulesPlugin(String pluginId, String version) {
+        super(pluginId, version);
     }
 
     @Override
@@ -43,6 +43,7 @@ public class RulesPlugin extends AbstractHobsonPlugin implements TaskConditionCl
 
     @Override
     public void onStartup(PropertyContainer config) {
+        // set up the task provider
         taskProvider = new JRETaskProvider(getContext(), this);
         taskProvider.setTaskManager(getTaskManager());
 
@@ -51,14 +52,16 @@ public class RulesPlugin extends AbstractHobsonPlugin implements TaskConditionCl
         logger.debug("Using local rules file: {}", rulesFile.getAbsolutePath());
         taskProvider.setRulesFile(rulesFile);
 
+        setTaskProvider(taskProvider);
+
         // publish condition classes
-        publishConditionClass(new DeviceIndoorTempAboveConditionClass(getContext()));
-        publishConditionClass(new DeviceIndoorTempBelowConditionClass(getContext()));
-        publishConditionClass(new DeviceTurnsOnConditionClass(getContext()));
-        publishConditionClass(new DeviceTurnsOffConditionClass(getContext()));
-        publishConditionClass(new DeviceUnavailableConditionClass(getContext()));
-        publishConditionClass(new PresenceArrivalConditionClass(getContext()));
-        publishConditionClass(new PresenceDepartureConditionClass(getContext()));
+        publishTaskConditionClass(new DeviceIndoorTempAboveConditionClass(getContext()));
+        publishTaskConditionClass(new DeviceIndoorTempBelowConditionClass(getContext()));
+        publishTaskConditionClass(new DeviceTurnsOnConditionClass(getContext()));
+        publishTaskConditionClass(new DeviceTurnsOffConditionClass(getContext()));
+        publishTaskConditionClass(new DeviceUnavailableConditionClass(getContext()));
+        publishTaskConditionClass(new PresenceArrivalConditionClass(getContext()));
+        publishTaskConditionClass(new PresenceDepartureConditionClass(getContext()));
 
         // set the plugin status to running
         setStatus(PluginStatus.running());
@@ -80,8 +83,8 @@ public class RulesPlugin extends AbstractHobsonPlugin implements TaskConditionCl
     }
 
     @Override
-    public TaskProvider getTaskProvider() {
-        return taskProvider;
+    public PluginType getType() {
+        return PluginType.CORE;
     }
 
     @Override

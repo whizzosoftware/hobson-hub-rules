@@ -1,16 +1,19 @@
-/*******************************************************************************
+/*
+ *******************************************************************************
  * Copyright (c) 2014 Whizzo Software, LLC.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- *******************************************************************************/
+ *******************************************************************************
+*/
 package com.whizzosoftware.hobson.rules.jruleengine;
 
 import com.whizzosoftware.hobson.api.device.DeviceContext;
 import com.whizzosoftware.hobson.api.event.DeviceUnavailableEvent;
 import com.whizzosoftware.hobson.api.event.PresenceUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.event.DeviceVariableUpdateEvent;
+import com.whizzosoftware.hobson.api.hub.HubContext;
 import com.whizzosoftware.hobson.api.plugin.PluginContext;
 import com.whizzosoftware.hobson.api.presence.PresenceEntityContext;
 import com.whizzosoftware.hobson.api.presence.PresenceLocationContext;
@@ -50,7 +53,7 @@ public class JRETaskProviderTest {
         provider.setTaskManager(taskManager);
         provider.setRulesFile(ruleFile);
 
-        createTask(provider, TaskContext.createLocal("foo"), Collections.singletonList(
+        createTask(taskManager, provider, HubContext.createLocal(), Collections.singletonList(
             new PropertyContainer(
                 pccc,
                 Collections.singletonMap("devices", (Object) Collections.singletonList(DeviceContext.createLocal("com.whizzosoftware.hobson.hobson-hub-zwave", "zwave-32")))
@@ -169,10 +172,13 @@ public class JRETaskProviderTest {
         engine.setTaskManager(taskManager);
         engine.setRulesFile(rulesFile);
 
-        List<HobsonTask> tasks = new ArrayList<>();
-        tasks.add(new HobsonTask(TaskContext.createLocal("task1"), "My task 1", null, null, Collections.singletonList(new PropertyContainer(pccc, Collections.singletonMap("devices", (Object)Collections.singletonList(DeviceContext.createLocal("plugin2", "device1"))))), new PropertyContainerSet("actionset1", null)));
-        tasks.add(new HobsonTask(TaskContext.createLocal("task2"), "My task 2", null, null, Collections.singletonList(new PropertyContainer(pccc, Collections.singletonMap("devices", (Object)Collections.singletonList(DeviceContext.createLocal("plugin2", "device1"))))), new PropertyContainerSet("actionset1", null)));
-        engine.onCreateTasks(tasks);
+        List<TaskContext> tasks = new ArrayList<>();
+        taskManager.createTask(HubContext.createLocal(), "task1", "My task1", Collections.singletonList(new PropertyContainer(pccc, Collections.singletonMap("devices", (Object)Collections.singletonList(DeviceContext.createLocal("plugin2", "device1"))))), new PropertyContainerSet("actionset1", null));
+        taskManager.createTask(HubContext.createLocal(), "task2", "My task2", Collections.singletonList(new PropertyContainer(pccc, Collections.singletonMap("devices", (Object)Collections.singletonList(DeviceContext.createLocal("plugin2", "device1"))))), new PropertyContainerSet("actionset1", null));
+        for (HobsonTask task : taskManager.getTasks(HubContext.createLocal())) {
+            tasks.add(task.getContext());
+        }
+        engine.onRegisterTasks(tasks);
 
         JSONObject json = new JSONObject(new JSONTokener(new FileInputStream(rulesFile)));
 
@@ -217,7 +223,12 @@ public class JRETaskProviderTest {
         assertEquals(1, actions.length());
 
         // create a third task
-        engine.onCreateTasks(Collections.singletonList(new HobsonTask(TaskContext.createLocal("task3"), "My task 3", null, null, Collections.singletonList(new PropertyContainer(pccc, Collections.singletonMap("devices", (Object)Collections.singletonList(DeviceContext.createLocal("plugin2", "device1"))))), new PropertyContainerSet("actionset1", null))));
+        taskManager.createTask(HubContext.createLocal(), "My task3", null, Collections.singletonList(new PropertyContainer(pccc, Collections.singletonMap("devices", (Object)Collections.singletonList(DeviceContext.createLocal("plugin2", "device1"))))), new PropertyContainerSet("actionset1", null));
+        for (HobsonTask task : taskManager.getTasks(HubContext.createLocal())) {
+            if (!tasks.contains(task.getContext())) {
+                engine.onCreateTask(task.getContext());
+            }
+        }
         json = new JSONObject(new JSONTokener(new FileInputStream(rulesFile)));
 
         // test prefix
@@ -250,7 +261,7 @@ public class JRETaskProviderTest {
         ctxs.add(DeviceContext.create(pctx, "device2"));
         propValues.put("devices", ctxs);
         propValues.put("inTempF", "80");
-        createTask(engine, TaskContext.createLocal("task1"), Collections.singletonList(new PropertyContainer(
+        createTask(taskManager, engine, HubContext.createLocal(), Collections.singletonList(new PropertyContainer(
             pccc,
             propValues
         )));
@@ -291,7 +302,7 @@ public class JRETaskProviderTest {
         ArrayList<DeviceContext> ctxs = new ArrayList<>();
         ctxs.add(DeviceContext.create(pctx, "device1"));
         propValues.put("devices", ctxs);
-        createTask(engine, TaskContext.createLocal("task1"), Collections.singletonList(new PropertyContainer(
+        createTask(taskManager, engine, HubContext.createLocal(), Collections.singletonList(new PropertyContainer(
             pccc,
             propValues
         )));
@@ -321,7 +332,7 @@ public class JRETaskProviderTest {
         propValues.put("person", PresenceEntityContext.createLocal("person1"));
         propValues.put("location", PresenceLocationContext.createLocal("location2"));
 
-        createTask(engine, TaskContext.createLocal("task1"), Collections.singletonList(new PropertyContainer(
+        createTask(taskManager, engine, HubContext.createLocal(), Collections.singletonList(new PropertyContainer(
             pccc,
             propValues
         )));
@@ -336,7 +347,7 @@ public class JRETaskProviderTest {
             PresenceLocationContext.createLocal("location2")
         ));
         assertEquals(1, taskManager.getTaskExecutions().size());
-        assertEquals("task1", taskManager.getTaskExecutions().get(0).getTaskId());
+        assertNotNull(taskManager.getTaskExecutions().get(0).getTaskId());
 
         // send an event with the wrong person
         taskManager.getTaskExecutions().clear();
@@ -389,7 +400,7 @@ public class JRETaskProviderTest {
         propValues.put("person", PresenceEntityContext.createLocal("person1"));
         propValues.put("location", PresenceLocationContext.createLocal("location2"));
 
-        createTask(engine, TaskContext.createLocal("task1"), Collections.singletonList(new PropertyContainer(
+        createTask(taskManager, engine, HubContext.createLocal(), Collections.singletonList(new PropertyContainer(
                 pccc,
                 propValues
         )));
@@ -404,7 +415,7 @@ public class JRETaskProviderTest {
                 PresenceLocationContext.createLocal("location3")
         ));
         assertEquals(1, taskManager.getTaskExecutions().size());
-        assertEquals("task1", taskManager.getTaskExecutions().get(0).getTaskId());
+        assertNotNull(taskManager.getTaskExecutions().get(0).getTaskId());
 
         // send an event with the wrong person
         taskManager.getTaskExecutions().clear();
@@ -464,15 +475,13 @@ public class JRETaskProviderTest {
         return rulesFile;
     }
 
-    protected void createTask(TaskProvider provider, TaskContext tctx, List<PropertyContainer> conditions) {
-        provider.onCreateTasks(Collections.singletonList(
-            new HobsonTask(
-                tctx,
-                "My Task",
-                null,
-                null,
-                conditions,
-                new PropertyContainerSet("actionset1", null)
-            )));
+    protected void createTask(TaskManager manager, TaskProvider provider, HubContext hctx, List<PropertyContainer> conditions) {
+        manager.createTask(hctx, "My Task", null, conditions, new PropertyContainerSet("actionset1", null));
+        List<TaskContext> ctxs = new ArrayList<>();
+        Collection<HobsonTask> tasks = manager.getTasks(hctx);
+        for (HobsonTask task : tasks) {
+            ctxs.add(task.getContext());
+        }
+        provider.onRegisterTasks(ctxs);
     }
 }

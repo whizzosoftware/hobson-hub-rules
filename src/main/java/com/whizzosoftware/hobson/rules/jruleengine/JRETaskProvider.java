@@ -1,10 +1,12 @@
-/*******************************************************************************
+/*
+ *******************************************************************************
  * Copyright (c) 2014 Whizzo Software, LLC.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- *******************************************************************************/
+ *******************************************************************************
+*/
 package com.whizzosoftware.hobson.rules.jruleengine;
 
 import com.whizzosoftware.hobson.api.HobsonRuntimeException;
@@ -149,37 +151,42 @@ public class JRETaskProvider implements TaskProvider {
     }
 
     @Override
-    public void onCreateTasks(final Collection<HobsonTask> tasks) {
-        for (HobsonTask task : tasks) {
+    public void onCreateTask(TaskContext ctx) {
+        onCreateTask(taskManager.getTask(ctx), true);
+    }
+
+    public void onCreateTask(HobsonTask task, boolean writeRulesFile) {
+        logger.info("Adding new task: {}", task.getContext());
+        tasks.put(task.getContext().getTaskId(), task);
+        if (writeRulesFile) {
             try {
-                logger.info("Adding new task: {}", task.getContext());
-                this.tasks.put(task.getContext().getTaskId(), task);
+                writeRuleFile();
+                if (rulesFile != null) {
+                    loadRules(new FileInputStream(rulesFile));
+                }
             } catch (Exception e) {
-                throw new TaskException("Error adding task", e);
+                throw new TaskException("Error writing rules file", e);
             }
-        }
-
-        try {
-            // write to file
-            writeRuleFile();
-
-            // re-load rules
-            if (rulesFile != null) {
-                loadRules(new FileInputStream(rulesFile));
-            }
-        } catch (Exception e) {
-            throw new TaskException("Error writing rules file", e);
         }
     }
 
     @Override
-    public void onUpdateTask(HobsonTask task) {
-        try {
-            HobsonTask t = tasks.get(task.getContext().getTaskId());
-            if (t != null) {
-                logger.info("Updating task: {}", task.getContext());
+    public void onRegisterTasks(final Collection<TaskContext> tasks) {
+        Iterator<TaskContext> it = tasks.iterator();
+        while (it.hasNext()) {
+            HobsonTask task = taskManager.getTask(it.next());
+            onCreateTask(task, !it.hasNext());
+        }
+    }
 
-                tasks.put(task.getContext().getTaskId(), task);
+    @Override
+    public void onUpdateTask(TaskContext ctx) {
+        try {
+            HobsonTask t = tasks.get(ctx.getTaskId());
+            if (t != null) {
+                logger.info("Updating task: {}", ctx);
+
+                tasks.put(ctx.getTaskId(), taskManager.getTask(ctx));
 
                 // add to file
                 writeRuleFile();
@@ -192,7 +199,7 @@ public class JRETaskProvider implements TaskProvider {
                 throw new RuntimeException("Task not found");
             }
         } catch (Exception e) {
-            throw new TaskException("Error adding task", e);
+            throw new TaskException("Error updating task", e);
         }
     }
 
