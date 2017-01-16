@@ -1,13 +1,18 @@
-/*******************************************************************************
+/*
+ *******************************************************************************
  * Copyright (c) 2014 Whizzo Software, LLC.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
- *******************************************************************************/
+ *******************************************************************************
+*/
 package com.whizzosoftware.hobson.rules;
 
 import com.whizzosoftware.hobson.api.event.*;
+import com.whizzosoftware.hobson.api.event.device.DeviceUnavailableEvent;
+import com.whizzosoftware.hobson.api.event.device.DeviceVariablesUpdateEvent;
+import com.whizzosoftware.hobson.api.event.presence.PresenceUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.plugin.AbstractHobsonPlugin;
 import com.whizzosoftware.hobson.api.plugin.PluginStatus;
 import com.whizzosoftware.hobson.api.plugin.PluginType;
@@ -32,8 +37,8 @@ public class RulesPlugin extends AbstractHobsonPlugin implements TaskConditionCl
 
     private JRETaskProvider taskProvider;
 
-    public RulesPlugin(String pluginId, String version) {
-        super(pluginId, version);
+    public RulesPlugin(String pluginId, String version, String description) {
+        super(pluginId, version, description);
     }
 
     @Override
@@ -73,11 +78,6 @@ public class RulesPlugin extends AbstractHobsonPlugin implements TaskConditionCl
     }
 
     @Override
-    public String[] getEventTopics() {
-        return new String[] {EventTopics.PRESENCE_TOPIC};
-    }
-
-    @Override
     public long getRefreshInterval() {
         return 0;
     }
@@ -95,15 +95,10 @@ public class RulesPlugin extends AbstractHobsonPlugin implements TaskConditionCl
         return null;
     }
 
-    @Override
-    public void onPluginConfigurationUpdate(PropertyContainer config) {}
-
-    @Override
+    @EventHandler
     public void onHobsonEvent(HobsonEvent event) {
-        super.onHobsonEvent(event);
-
         // for now, the plugin will only process variable updates, presence update events and device availability events
-        if (event instanceof DeviceVariableUpdateEvent ||
+        if (event instanceof DeviceVariablesUpdateEvent ||
             event instanceof DeviceUnavailableEvent ||
             event instanceof PresenceUpdateNotificationEvent) {
             taskProvider.processEvent(event);

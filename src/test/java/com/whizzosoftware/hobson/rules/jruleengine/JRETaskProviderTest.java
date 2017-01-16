@@ -10,9 +10,9 @@
 package com.whizzosoftware.hobson.rules.jruleengine;
 
 import com.whizzosoftware.hobson.api.device.DeviceContext;
-import com.whizzosoftware.hobson.api.event.DeviceUnavailableEvent;
-import com.whizzosoftware.hobson.api.event.PresenceUpdateNotificationEvent;
-import com.whizzosoftware.hobson.api.event.DeviceVariableUpdateEvent;
+import com.whizzosoftware.hobson.api.event.device.DeviceUnavailableEvent;
+import com.whizzosoftware.hobson.api.event.presence.PresenceUpdateNotificationEvent;
+import com.whizzosoftware.hobson.api.event.device.DeviceVariablesUpdateEvent;
 import com.whizzosoftware.hobson.api.hub.HubContext;
 import com.whizzosoftware.hobson.api.plugin.PluginContext;
 import com.whizzosoftware.hobson.api.presence.PresenceEntityContext;
@@ -80,7 +80,7 @@ public class JRETaskProviderTest {
         JSONObject condition = conditions.getJSONObject(0);
         assertEquals(ConditionConstants.EVENT_ID, condition.getString("leftTerm"));
         assertEquals("=", condition.getString("op"));
-        assertEquals(DeviceVariableUpdateEvent.ID, condition.getString("rightTerm"));
+        assertEquals(DeviceVariablesUpdateEvent.ID, condition.getString("rightTerm"));
         condition = conditions.getJSONObject(1);
         assertEquals(ConditionConstants.DEVICE_CTX, condition.getString("leftTerm"));
         assertEquals("containsatleastone", condition.getString("op"));
@@ -268,18 +268,18 @@ public class JRETaskProviderTest {
 
         assertEquals(0, taskManager.getActionSetExecutions().size());
 
-        engine.processEvent(new DeviceVariableUpdateEvent(System.currentTimeMillis(), new DeviceVariableUpdate(DeviceVariableContext.create(pctx, "device1", VariableConstants.INDOOR_TEMP_F), null, 81.0)));
+        engine.processEvent(new DeviceVariablesUpdateEvent(System.currentTimeMillis(), new DeviceVariableUpdate(DeviceVariableContext.create(pctx, "device1", VariableConstants.INDOOR_TEMP_F), null, 81.0)));
 
         assertEquals(1, taskManager.getTaskExecutions().size());
         assertNotNull(taskManager.getTaskExecutions().get(0).getTaskId());
 
-        engine.processEvent(new DeviceVariableUpdateEvent(System.currentTimeMillis(), new DeviceVariableUpdate(DeviceVariableContext.create(pctx, "device1", VariableConstants.INDOOR_TEMP_F), null, 79.0)));
+        engine.processEvent(new DeviceVariablesUpdateEvent(System.currentTimeMillis(), new DeviceVariableUpdate(DeviceVariableContext.create(pctx, "device1", VariableConstants.INDOOR_TEMP_F), null, 79.0)));
         assertEquals(1, taskManager.getTaskExecutions().size());
 
-        engine.processEvent(new DeviceVariableUpdateEvent(System.currentTimeMillis(), new DeviceVariableUpdate(DeviceVariableContext.create(pctx, "device3", VariableConstants.INDOOR_TEMP_F), null, 81.0)));
+        engine.processEvent(new DeviceVariablesUpdateEvent(System.currentTimeMillis(), new DeviceVariableUpdate(DeviceVariableContext.create(pctx, "device3", VariableConstants.INDOOR_TEMP_F), null, 81.0)));
         assertEquals(1, taskManager.getTaskExecutions().size());
 
-        engine.processEvent(new DeviceVariableUpdateEvent(System.currentTimeMillis(), new DeviceVariableUpdate(DeviceVariableContext.create(pctx, "device2", VariableConstants.INDOOR_TEMP_F), null, 81.0)));
+        engine.processEvent(new DeviceVariablesUpdateEvent(System.currentTimeMillis(), new DeviceVariableUpdate(DeviceVariableContext.create(pctx, "device2", VariableConstants.INDOOR_TEMP_F), null, 81.0)));
         assertEquals(2, taskManager.getTaskExecutions().size());
     }
 

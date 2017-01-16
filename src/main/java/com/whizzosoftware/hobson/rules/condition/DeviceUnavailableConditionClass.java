@@ -8,7 +8,7 @@
 package com.whizzosoftware.hobson.rules.condition;
 
 import com.whizzosoftware.hobson.api.device.DeviceContext;
-import com.whizzosoftware.hobson.api.event.DeviceUnavailableEvent;
+import com.whizzosoftware.hobson.api.event.device.DeviceUnavailableEvent;
 import com.whizzosoftware.hobson.api.plugin.PluginContext;
 import com.whizzosoftware.hobson.api.property.*;
 import com.whizzosoftware.hobson.api.task.condition.ConditionClassType;

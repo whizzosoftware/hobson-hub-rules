@@ -7,7 +7,7 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.rules.condition;
 
-import com.whizzosoftware.hobson.api.event.PresenceUpdateNotificationEvent;
+import com.whizzosoftware.hobson.api.event.presence.PresenceUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.plugin.PluginContext;
 import com.whizzosoftware.hobson.api.property.PropertyConstraintType;
 import com.whizzosoftware.hobson.api.property.PropertyContainer;

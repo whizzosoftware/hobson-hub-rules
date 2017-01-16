@@ -7,9 +7,9 @@
  *******************************************************************************/
 package com.whizzosoftware.hobson.rules.jruleengine;
 
-import com.whizzosoftware.hobson.api.event.DeviceUnavailableEvent;
-import com.whizzosoftware.hobson.api.event.DeviceVariableUpdateEvent;
-import com.whizzosoftware.hobson.api.event.PresenceUpdateNotificationEvent;
+import com.whizzosoftware.hobson.api.event.device.DeviceUnavailableEvent;
+import com.whizzosoftware.hobson.api.event.device.DeviceVariablesUpdateEvent;
+import com.whizzosoftware.hobson.api.event.presence.PresenceUpdateNotificationEvent;
 import com.whizzosoftware.hobson.api.variable.DeviceVariableUpdate;
 
 /**
@@ -29,7 +29,7 @@ public class JREEventContext {
     private String personCtx;
 
     public JREEventContext(DeviceVariableUpdate update) {
-        this.eventId = DeviceVariableUpdateEvent.ID;
+        this.eventId = DeviceVariablesUpdateEvent.ID;
         this.deviceCtx = update.getContext().getDeviceContext().toString();
         this.variableName = update.getName();
         this.variableOldValue = update.getOldValue();
