@@ -261,6 +261,7 @@ public class JRETaskProvider implements TaskProvider {
         } else {
             rule.put("description", task.getContext().getTaskId());
         }
+        rule.put("enabled", task.isEnabled());
 
         PropertyContainer triggerCondition = TaskHelper.getTriggerCondition(provider, task.getConditions());
 
