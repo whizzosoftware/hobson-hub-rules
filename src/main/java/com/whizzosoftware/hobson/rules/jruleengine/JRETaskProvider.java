@@ -153,22 +153,19 @@ public class JRETaskProvider implements TaskProvider {
         }
     }
 
-    @Override
-    public void onCreateTask(TaskContext ctx) {
-        onCreateTask(taskManager.getTask(ctx), true);
-    }
-
-    public void onCreateTask(HobsonTask task, boolean writeRulesFile) {
-        logger.info("Adding new task: {}", task.getContext());
-        tasks.put(task.getContext().getTaskId(), task);
-        if (writeRulesFile) {
-            try {
-                writeRuleFile();
-                if (rulesFile != null) {
-                    loadRules(new FileInputStream(rulesFile));
+    private void onCreateTask(HobsonTask task, boolean writeRulesFile) {
+        if (task != null && doesOwnTask(task)) {
+            logger.info("Adding new task: {}", task.getContext());
+            tasks.put(task.getContext().getTaskId(), task);
+            if (writeRulesFile) {
+                try {
+                    writeRuleFile();
+                    if (rulesFile != null) {
+                        loadRules(new FileInputStream(rulesFile));
+                    }
+                } catch (Exception e) {
+                    throw new TaskException("Error writing rules file", e);
                 }
-            } catch (Exception e) {
-                throw new TaskException("Error writing rules file", e);
             }
         }
     }
@@ -178,7 +175,9 @@ public class JRETaskProvider implements TaskProvider {
         Iterator<TaskContext> it = tasks.iterator();
         while (it.hasNext()) {
             HobsonTask task = taskManager.getTask(it.next());
-            onCreateTask(task, !it.hasNext());
+            if (task != null && doesOwnTask(task)) {
+                onCreateTask(task, !it.hasNext());
+            }
         }
     }
 
@@ -186,7 +185,7 @@ public class JRETaskProvider implements TaskProvider {
     public void onUpdateTask(TaskContext ctx) {
         try {
             HobsonTask t = tasks.get(ctx.getTaskId());
-            if (t != null) {
+            if (t != null && doesOwnTask(t)) {
                 logger.info("Updating task: {}", ctx);
 
                 tasks.put(ctx.getTaskId(), taskManager.getTask(ctx));
@@ -198,8 +197,6 @@ public class JRETaskProvider implements TaskProvider {
                 if (rulesFile != null) {
                     loadRules(new FileInputStream(rulesFile));
                 }
-            } else {
-                throw new RuntimeException("Task not found");
             }
         } catch (Exception e) {
             throw new TaskException("Error updating task", e);
@@ -210,7 +207,7 @@ public class JRETaskProvider implements TaskProvider {
     public void onDeleteTask(TaskContext ctx) {
         try {
             HobsonTask t = tasks.get(ctx.getTaskId());
-            if (t != null) {
+            if (t != null && doesOwnTask(t)) {
                 logger.info("Deleting task: {}", ctx.getTaskId());
                 tasks.remove(ctx.getTaskId());
 
@@ -221,12 +218,23 @@ public class JRETaskProvider implements TaskProvider {
                 if (rulesFile != null) {
                     loadRules(new FileInputStream(rulesFile));
                 }
-            } else {
-                throw new RuntimeException("Task not found");
             }
         } catch (Exception e) {
             throw new TaskException("Error deleting task", e);
         }
+    }
+
+    private boolean doesOwnTask(HobsonTask task) {
+        PropertyContainer triggerCondition = TaskHelper.getTriggerCondition(taskManager, task.getConditions());
+
+        if (triggerCondition != null) {
+            TaskConditionClass tcc = taskManager.getConditionClass(triggerCondition.getContainerClassContext());
+            if (tcc != null) {
+                return (tcc instanceof AbstractRuleConditionClass);
+            }
+        }
+
+        return false;
     }
 
     synchronized private void writeRuleFile() throws Exception {
@@ -253,7 +261,7 @@ public class JRETaskProvider implements TaskProvider {
         }
     }
 
-    protected JSONObject createTaskJSON(TaskConditionClassProvider provider, HobsonTask task) {
+    private JSONObject createTaskJSON(TaskConditionClassProvider provider, HobsonTask task) {
         JSONObject rule = new JSONObject();
         rule.put("name", task.getContext().getTaskId());
         if (task.getName() != null) {
