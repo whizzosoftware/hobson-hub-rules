@@ -78,6 +78,10 @@ public class RulesPlugin extends AbstractHobsonPlugin implements TaskConditionCl
     }
 
     @Override
+    public void onPluginConfigurationUpdate(PropertyContainer config) {
+    }
+
+    @Override
     public long getRefreshInterval() {
         return 0;
     }
