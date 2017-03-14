@@ -55,6 +55,7 @@ public class JRETaskProvider implements TaskProvider {
      * Constructor.
      *
      * @param pluginContext the context of the plugin creating tasks
+     * @param conditionClassProvider a provider allowing access to condition class definitions
      */
     public JRETaskProvider(PluginContext pluginContext, TaskConditionClassProvider conditionClassProvider) {
         try {
